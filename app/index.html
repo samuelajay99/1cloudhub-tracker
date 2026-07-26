@@ -1985,6 +1985,11 @@ async function enterApp(user) {
   currentUser = user;
   document.getElementById('authSubmitBtn').disabled = false;
   await pullFromCloud();
+  // Merged local data (e.g. pre-existing notes from before this device ever
+  // signed in) sits only in localStorage until something calls saveNotesArr/
+  // saveTasks. Push once here so first-login data is backed up immediately,
+  // not only after the user's next edit.
+  await pushToCloud();
   if (!appEntered) {
     migrateLegacyMarkup();
     renderSidebar();
