@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>1CloudHub Notes & Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+  :root {
+    color-scheme: light;
+    --navy: #333B49;
+    --navy-deep: #232A38;
+    --blue: #1899C2;
+    --blue-soft: #4FC3F0;
+    --green: #6FB43C;
+    --orange: #F07814;
+    --orange-soft: #FBD3AD;
+    --ink: #1C2733;
+    --muted: #64748B;
+    --faint: #94A3B8;
+    --line: rgba(20, 41, 71, 0.08);
+    --line-strong: rgba(20, 41, 71, 0.14);
+    --card: rgba(255, 255, 255, 0.72);
+    --card-solid: #FFFFFF;
+    --glass-blur: saturate(160%) blur(18px);
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 22px;
+    --shadow-1: 0 1px 2px rgba(15, 33, 60, 0.05), 0 2px 8px rgba(15, 33, 60, 0.05);
+    --shadow-2: 0 2px 6px rgba(15, 33, 60, 0.07), 0 10px 28px rgba(15, 33, 60, 0.09);
+    --shadow-glow-orange: 0 4px 18px rgba(240, 120, 20, 0.35);
+    --grad-brand: linear-gradient(120deg, #F07814 0%, #29B8D8 50%, #6FB43C 100%);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { box-sizing: border-box; }
+  ::selection { background: rgba(5, 104, 173, 0.18); }
+
+  body {
+    font-family: 'Poppins', -apple-system, Arial, sans-serif;
+    margin: 0; padding: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 500px at 8% -5%, rgba(80, 200, 240, 0.16), transparent 60%),
+      radial-gradient(900px 480px at 100% 0%, rgba(240, 120, 20, 0.10), transparent 55%),
+      radial-gradient(800px 600px at 50% 110%, rgba(111, 180, 60, 0.10), transparent 60%),
+      linear-gradient(165deg, #F2FAFD 0%, #F5F9F3 50%, #FDF7EF 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Topbar ---------- */
+  .topbar {
+    background: linear-gradient(120deg, rgba(42, 50, 64, 0.97) 0%, rgba(29, 36, 48, 0.97) 100%);
+    backdrop-filter: var(--glass-blur);
+    padding: 13px 24px;
+    display: flex; align-items: center; gap: 16px;
+    -webkit-app-region: drag;
+    position: relative; z-index: 5;
+    box-shadow: 0 6px 24px rgba(23, 30, 42, 0.30);
+  }
+  .topbar::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(600px 80px at 20% 0%, rgba(80, 200, 240, 0.28), transparent 70%);
+  }
+  .brand-wrap { display: flex; align-items: center; gap: 13px; position: relative; }
+  .logo-badge {
+    background: #fff; border-radius: 10px; padding: 6px 10px;
+    display: flex; align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255,255,255,0.6);
+  }
+  .logo-badge img { height: 18px; display: block; }
+  .brand-divider { width: 1px; height: 24px; background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0)); }
+  .topbar .title {
+    color: #fff; font-size: 13.5px; font-weight: 700;
+    letter-spacing: 2.2px; text-transform: uppercase;
+    font-family: 'Space Grotesk', 'Courier New', monospace;
+    flex: 1; position: relative;
+  }
+  .topbar .title small {
+    display: block; font-family: 'Poppins', sans-serif;
+    font-size: 9.5px; font-weight: 400; letter-spacing: 0.4px;
+    color: rgba(255, 255, 255, 0.55); text-transform: none; margin-top: 2px;
+  }
+  .tabs {
+    display: flex; gap: 3px; -webkit-app-region: no-drag;
+    background: rgba(255, 255, 255, 0.09); padding: 3px; border-radius: 12px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .tab-btn {
+    background: transparent; border: none; color: rgba(255, 255, 255, 0.65);
+    padding: 7px 18px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: 'Poppins', inherit;
+    transition: color 0.18s var(--ease), background 0.18s var(--ease), box-shadow 0.18s var(--ease);
+  }
+  .tab-btn:hover { color: #fff; }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #F07814, #F59A3E);
+    color: #fff; box-shadow: var(--shadow-glow-orange);
+  }
+  .gear-btn {
+    background: rgba(255, 255, 255, 0.09); border: none; color: rgba(255, 255, 255, 0.85);
+    width: 33px; height: 33px; border-radius: 10px; cursor: pointer; font-size: 14px;
+    -webkit-app-region: no-drag; transition: background 0.18s, transform 0.3s var(--ease);
+  }
+  .gear-btn:hover { background: rgba(255, 255, 255, 0.2); transform: rotate(45deg); }
+  .accent-strip { height: 3px; background: var(--grad-brand); box-shadow: 0 1px 8px rgba(5, 104, 173, 0.4); }
+
+  .content { padding: 24px 28px 46px; }
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn 0.35s var(--ease); }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Notes ---------- */
+  .notes-layout { display: flex; gap: 18px; align-items: flex-start; }
+  .notes-sidebar {
+    width: 250px; flex-shrink: 0; padding: 12px;
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.65); border-radius: var(--r-xl);
+    box-shadow: var(--shadow-1);
+  }
+  .new-note-btn {
+    width: 100%; border: none; border-radius: var(--r-md); padding: 11px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; color: #fff;
+    background: linear-gradient(135deg, #2A3240, #1899C2);
+    box-shadow: 0 3px 12px rgba(24, 153, 194, 0.3);
+    margin-bottom: 12px;
+    transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+  }
+  .new-note-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(24, 153, 194, 0.42); }
+  .note-item {
+    padding: 10px 11px; border-radius: var(--r-md); cursor: pointer; margin-bottom: 5px;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s var(--ease);
+    animation: cardIn 0.3s var(--ease) both;
+  }
+  .note-item:hover { background: rgba(232, 241, 250, 0.8); transform: translateX(2px); }
+  .note-item.selected {
+    background: linear-gradient(135deg, rgba(232, 241, 250, 0.95), rgba(253, 244, 234, 0.7));
+    border-color: rgba(247, 148, 29, 0.4);
+    box-shadow: inset 3px 0 0 var(--orange);
+  }
+  .note-item .n-title { font-size: 12.5px; font-weight: 600; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-item .n-snippet { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .note-item .n-meta { font-size: 9.5px; color: var(--faint); margin-top: 4px; }
+  .empty-sidebar { font-size: 11.5px; color: var(--faint); padding: 8px; }
+
+  .note-editor {
+    flex: 1; min-height: 430px; padding: 24px;
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.65); border-radius: var(--r-xl);
+    box-shadow: var(--shadow-1);
+  }
+  .note-editor input.title-input {
+    width: 100%; border: none; background: transparent;
+    font-size: 21px; font-weight: 700; color: var(--navy);
+    font-family: 'Space Grotesk', 'Poppins', inherit; margin-bottom: 4px;
+  }
+  .note-editor input.title-input:focus { outline: none; }
+  .note-editor .meta-row { font-size: 10.5px; color: var(--faint); margin-bottom: 14px; }
+  .note-editor textarea.body-input {
+    width: 100%; min-height: 280px; border: none; background: transparent;
+    font-family: inherit; font-size: 13.5px; line-height: 1.65; resize: vertical; color: var(--ink);
+  }
+  .note-editor textarea.body-input:focus { outline: none; }
+
+  .editor-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--line); padding-top: 14px; margin-top: 12px;
+  }
+  .editor-actions .left-actions { display: flex; gap: 9px; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    border: none; border-radius: 10px; padding: 9px 17px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease), background 0.16s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, #F07814, #F59A3E); color: #fff;
+    box-shadow: 0 3px 12px rgba(240, 120, 20, 0.32);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(240, 120, 20, 0.42); }
+  .btn-secondary { background: rgba(217, 242, 250, 0.92); color: #117FA2; box-shadow: inset 0 0 0 1px rgba(24, 153, 194, 0.16); }
+  .btn-secondary:hover { background: #BFE9F5; }
+  .btn-danger { background: none; color: #C0392B; }
+  .status-line { font-size: 11.5px; color: var(--blue); min-height: 15px; }
+  .no-note-selected { color: var(--faint); font-size: 13px; text-align: center; padding: 110px 0; }
+  .extracted-tag { display: inline-block; background: rgba(232, 241, 250, 0.9); color: var(--blue); font-size: 10px; padding: 2px 9px; border-radius: 10px; margin-top: 8px; }
+
+  /* ---------- Note tasks & transcript ---------- */
+  .note-tasks-section { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .note-tasks-heading {
+    font-size: 10.5px; font-weight: 700; color: var(--blue);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 9px;
+    font-family: 'Space Grotesk', monospace;
+  }
+  .note-task-row {
+    display: flex; align-items: center; gap: 9px; padding: 8px 11px;
+    border-radius: 10px; font-size: 12px; cursor: pointer;
+    transition: background 0.14s, transform 0.14s var(--ease);
+  }
+  .note-task-row:hover { background: rgba(247, 250, 253, 0.95); transform: translateX(2px); }
+  .note-task-row .row-item.done { text-decoration: line-through; color: var(--muted); }
+
+  .transcript-toggle {
+    background: linear-gradient(135deg, rgba(253, 234, 209, 0.95), rgba(251, 220, 179, 0.85));
+    color: #A85E00; border: 1px solid rgba(247, 212, 163, 0.9);
+    border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 10px 17px; font-family: inherit; display: inline-flex; align-items: center; gap: 7px;
+    transition: transform 0.16s var(--ease), box-shadow 0.16s;
+  }
+  .transcript-toggle:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(247, 148, 29, 0.22); }
+  .transcript-section {
+    margin-top: 12px; border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: 14px; background: rgba(250, 251, 253, 0.85);
+  }
+  .transcript-section textarea {
+    width: 100%; min-height: 120px; border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 10px 12px; font-size: 12px; font-family: 'Space Grotesk', 'Courier New', monospace;
+    resize: vertical; color: var(--ink); background: rgba(255,255,255,0.9);
+  }
+  .transcript-checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 11.5px; color: var(--muted); }
+  .transcript-attach-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .attach-btn {
+    background: rgba(232, 241, 250, 0.9); color: var(--blue); border: none; border-radius: 9px;
+    padding: 7px 13px; font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .attach-btn:hover { background: #BFE9F5; }
+  .attach-filename { font-size: 11px; color: var(--muted); }
+  .transcript-or { font-size: 10.5px; color: var(--faint); }
+
+  .split-panes { display: flex; gap: 18px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .split-panes .pane { flex: 1; min-width: 0; }
+  .minutes-pane {
+    background: rgba(250, 251, 253, 0.9); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 13px; font-size: 12px; line-height: 1.65; color: var(--ink);
+    white-space: pre-wrap; max-height: 280px; overflow-y: auto;
+  }
+  .minutes-empty { color: var(--faint); font-size: 11.5px; }
+  .minutes-meta { font-size: 10px; color: var(--faint); margin-top: 6px; }
+
+  /* ---------- Stats ---------- */
+  .stats { display: flex; gap: 13px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.65); border-left: 4px solid #C9E2F7;
+    border-radius: var(--r-lg); padding: 13px 17px; min-width: 104px;
+    box-shadow: var(--shadow-1);
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    animation: cardIn 0.35s var(--ease) both;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .stat-card.stat-total { border-left-color: #7FD6F0; }
+  .stat-card.stat-open { border-left-color: #F5B678; }
+  .stat-card.stat-done { border-left-color: #A9D57E; }
+  .stat-card.progress { border-left-color: #56C4DE; min-width: 190px; }
+  .stat-card.overdue { border-left-color: #F2AFA6; }
+  .stat-card.overdue .stat-num { color: #C0392B; }
+  .stat-num {
+    font-size: 22px; font-weight: 700; color: var(--orange);
+    font-family: 'Space Grotesk', 'Poppins', inherit;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label { font-size: 9.5px; color: var(--blue); margin-top: 2px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+  .bar-bg { background: rgba(20, 41, 71, 0.09); border-radius: 6px; height: 8px; margin-top: 7px; overflow: hidden; }
+  .bar-fill { background: linear-gradient(90deg, #29B8D8, #6FB43C); height: 100%; border-radius: 6px; transition: width 0.5s var(--ease); }
+
+  /* ---------- Quick add + controls ---------- */
+  .quick-add { display: flex; gap: 9px; margin-bottom: 12px; }
+  .quick-add input {
+    flex: 1; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 12px; padding: 12px 15px;
+    font-size: 13px; font-family: inherit;
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-1);
+    transition: box-shadow 0.18s, border-color 0.18s;
+  }
+  .quick-add input:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.15), var(--shadow-1); }
+  .quick-add select {
+    border: 1px solid var(--line-strong); border-radius: 12px; padding: 0 11px;
+    font-size: 12.5px; font-family: inherit; color: var(--navy);
+    background: var(--card-solid); cursor: pointer;
+  }
+  .quick-add button { white-space: nowrap; }
+
+  .controls-row { display: flex; gap: 9px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+  .controls-row select {
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 11px;
+    font-size: 12px; font-family: inherit; color: var(--navy); background: var(--card-solid); cursor: pointer;
+  }
+  .controls-row input[type=text].search-input {
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 13px;
+    font-size: 12px; font-family: inherit; min-width: 200px; background: var(--card-solid);
+    transition: box-shadow 0.18s, border-color 0.18s;
+  }
+  .controls-row input[type=text].search-input:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.14); }
+  .trash-btn {
+    background: var(--card-solid); border: 1px solid var(--line-strong); color: var(--muted);
+    border-radius: 10px; padding: 8px 13px; font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  .trash-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .view-toggle { display: flex; gap: 3px; background: rgba(5, 104, 173, 0.1); padding: 3px; border-radius: 10px; }
+  .view-toggle button {
+    background: transparent; border: none; color: var(--blue); padding: 6px 14px;
+    border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  .view-toggle button.active { background: #fff; box-shadow: 0 1px 4px rgba(20, 41, 71, 0.16); }
+
+  .chip {
+    border: 1px solid var(--line-strong); background: var(--card-solid); color: var(--muted);
+    border-radius: 999px; padding: 7px 14px; font-size: 11.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.16s var(--ease);
+  }
+  .chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
+  .chip.chip-overdue.active { background: #FDEEEC; color: #C0392B; border-color: rgba(192, 57, 43, 0.35); box-shadow: 0 2px 10px rgba(192, 57, 43, 0.18); }
+  .chip.chip-today.active { background: #FDF4E7; color: #A85E00; border-color: rgba(247, 148, 29, 0.4); box-shadow: 0 2px 10px rgba(247, 148, 29, 0.2); }
+
+  /* ---------- Task list ---------- */
+  .task-list {
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.65); border-radius: var(--r-xl);
+    overflow: hidden; box-shadow: var(--shadow-1);
+  }
+  .task-group { border-bottom: 1px solid var(--line); }
+  .task-group:last-child { border-bottom: none; }
+  .group-header {
+    display: flex; align-items: center; gap: 10px; padding: 11px 17px; cursor: pointer;
+    background: rgba(247, 250, 253, 0.75); font-size: 12px;
+    transition: background 0.15s;
+  }
+  .group-header:hover { background: rgba(237, 244, 251, 0.95); }
+  .group-chevron { width: 14px; flex-shrink: 0; color: var(--muted); font-size: 10px; transition: transform 0.22s var(--ease); display: inline-block; }
+  .group-header.expanded .group-chevron { transform: rotate(90deg); }
+  .group-title { font-weight: 600; color: var(--navy); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .group-count { background: rgba(232, 241, 250, 0.95); color: var(--blue); font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 10px; flex-shrink: 0; }
+  .group-count.has-overdue { background: #FDEEEC; color: #C0392B; }
+  .group-rows { display: none; }
+  .group-rows.expanded { display: block; animation: viewIn 0.25s var(--ease); }
+  .task-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 17px 10px 35px;
+    border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12.5px;
+    border-left: 3px solid transparent;
+    transition: background 0.13s, border-left-color 0.13s, padding-left 0.13s var(--ease);
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row:hover { background: rgba(247, 250, 253, 0.9); border-left-color: var(--orange); padding-left: 36px; }
+  .task-row.done-row { opacity: 0.5; }
+  .row-check { width: 15px; height: 15px; accent-color: var(--orange); cursor: pointer; flex-shrink: 0; }
+  .row-priority { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(20,41,71,0.05); }
+  .row-item { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .row-item.done { text-decoration: line-through; color: var(--muted); }
+  .row-tag { background: rgba(232, 241, 250, 0.95); color: var(--blue); padding: 2px 8px; border-radius: 6px; font-size: 10px; flex-shrink: 0; }
+  .row-person { color: var(--muted); font-size: 10.5px; flex-shrink: 0; min-width: 70px; text-align: left; }
+  .row-due { color: var(--muted); font-size: 10.5px; flex-shrink: 0; min-width: 62px; font-variant-numeric: tabular-nums; }
+  .row-due.overdue { color: #C0392B; font-weight: 700; }
+  .row-status {
+    font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 999px; flex-shrink: 0;
+    min-width: 92px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .status-Open { background: #E1F5FB; color: #117FA2; }
+  .status-In-Progress { background: #FDEBD9; color: #C05F08; }
+  .status-Waiting-on-Others { background: #F6EBD7; color: #96690F; }
+  .status-Done { background: #EAF4DC; color: #4A7A1E; }
+  .empty { color: var(--faint); font-size: 12px; padding: 22px; text-align: center; }
+  .source-link { font-size: 9.5px; color: var(--faint); margin-top: 5px; }
+
+  /* ---------- Kanban ---------- */
+  .kanban-board { display: flex; gap: 15px; overflow-x: auto; align-items: flex-start; padding-bottom: 6px; }
+  .kanban-column {
+    background: rgba(232, 241, 250, 0.55); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--r-lg); padding: 13px; min-width: 252px; flex: 1;
+  }
+  .kanban-column-header {
+    font-weight: 700; font-size: 11.5px; margin-bottom: 11px;
+    display: flex; justify-content: space-between; color: var(--navy);
+    font-family: 'Space Grotesk', 'Courier New', monospace;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .kanban-count { background: rgba(255,255,255,0.95); border-radius: 10px; padding: 1px 9px; font-size: 11px; color: var(--muted); }
+  .kanban-card {
+    background: var(--card-solid); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: 12px; margin-bottom: 10px; cursor: pointer;
+    box-shadow: var(--shadow-1);
+    transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+    animation: cardIn 0.3s var(--ease) both;
+  }
+  .kanban-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+  .kanban-card.done-card { opacity: 0.55; }
+  .kanban-card-top { display: flex; align-items: flex-start; gap: 8px; }
+  .kanban-card .kc-item { font-size: 12.5px; font-weight: 500; line-height: 1.4; flex: 1; }
+  .kanban-card .kc-item.done { text-decoration: line-through; color: var(--muted); }
+  .kanban-card .kc-parent { font-size: 10px; color: var(--muted); margin: 4px 0 0 22px; }
+  .kanban-card .kc-meta { display: flex; gap: 6px; margin-top: 9px; font-size: 10px; color: var(--muted); flex-wrap: wrap; align-items: center; }
+  .kanban-card .kc-tag { background: rgba(232, 241, 250, 0.95); padding: 1px 7px; border-radius: 6px; }
+  .kanban-card .kc-source { font-size: 9.5px; color: var(--faint); margin-top: 7px; }
+  .kanban-empty { color: var(--faint); font-size: 11.5px; padding: 10px; }
+  .kanban-column.drag-over { outline: 2px dashed var(--blue); outline-offset: -4px; background: rgba(80, 200, 240, 0.18); }
+  .kanban-card.dragging { opacity: 0.45; transform: scale(0.98); }
+  .celebrate-particle {
+    position: fixed; width: 7px; height: 7px; border-radius: 2px; pointer-events: none; z-index: 90;
+    animation: particleFly 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes particleFly {
+    from { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+    to { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(220deg); }
+  }
+
+  .footerbar { height: 5px; background: var(--grad-brand); box-shadow: 0 -1px 10px rgba(5, 104, 173, 0.25); }
+
+  /* ---------- Modals ---------- */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(11, 25, 48, 0.45); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-backdrop.show { display: flex; animation: viewIn 0.22s var(--ease); }
+  .modal {
+    background: rgba(255, 255, 255, 0.92); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--r-xl); padding: 24px; width: 470px; max-width: 92vw;
+    max-height: 86vh; overflow-y: auto;
+    box-shadow: 0 24px 70px rgba(11, 25, 48, 0.35);
+  }
+  .modal h3 { margin: 0 0 6px; color: var(--navy); font-size: 15.5px; font-family: 'Space Grotesk', inherit; }
+  .modal p { font-size: 12px; color: var(--muted); margin: 0 0 14px; line-height: 1.55; }
+  .modal input[type=password], .modal input[type=text], .modal textarea, .modal select {
+    width: 100%; border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 10px 11px; font-size: 12.5px; font-family: inherit; margin-bottom: 12px;
+    background: rgba(255,255,255,0.9);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .modal input:focus, .modal textarea:focus, .modal select:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.13); }
+  .modal textarea { min-height: 70px; resize: vertical; }
+  .modal label.field-label { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px; }
+  .modal .field-row { display: flex; gap: 10px; }
+  .modal .field-row > div { flex: 1; }
+  .modal-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
+  .modal-actions .right-group { display: flex; gap: 8px; }
+  .field-label { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 41, 71, 0.95); backdrop-filter: var(--glass-blur);
+    color: #fff; padding: 12px 20px; border-radius: 14px; font-size: 12.5px;
+    display: none; align-items: center; gap: 14px; z-index: 60;
+    box-shadow: 0 10px 34px rgba(11, 25, 48, 0.4);
+  }
+  .toast.show { display: flex; animation: toastIn 0.3s var(--ease); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%); } }
+  .toast button {
+    background: linear-gradient(135deg, #F07814, #F59A3E); color: #fff; border: none;
+    border-radius: 8px; padding: 6px 12px; font-size: 11.5px; cursor: pointer; font-family: inherit;
+  }
+
+  /* ---------- Email ---------- */
+  .email-layout { display: flex; gap: 18px; align-items: flex-start; }
+  .email-inputs, .email-output {
+    flex: 1; min-width: 0; padding: 20px;
+    background: var(--card); backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.65); border-radius: var(--r-xl);
+    box-shadow: var(--shadow-1);
+  }
+  .email-textarea {
+    width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; padding: 11px 13px;
+    font-size: 12.5px; font-family: 'Poppins', inherit; resize: vertical; color: var(--ink);
+    min-height: 160px; background: rgba(255,255,255,0.9);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .email-textarea:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.13); }
+  .email-textarea.short { min-height: 80px; }
+  .email-textarea.tall { min-height: 220px; }
+  .email-output input[type=text] {
+    width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 13px;
+    font-size: 13px; font-family: inherit; background: rgba(255,255,255,0.9);
+  }
+  .email-revision-row { display: flex; gap: 9px; margin-top: 13px; }
+  .email-revision-row input {
+    flex: 1; border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 13px;
+    font-size: 12.5px; font-family: inherit; background: rgba(255,255,255,0.9);
+  }
+
+  .badge.overdue { background: #FDEEEC; color: #C0392B; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 7px; margin-left: auto; flex-shrink: 0; }
+
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="logo-badge"><img src="data:image/png;base64,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"></div>
+      <div class="brand-divider"></div>
+      <span class="title">TRACKER<small>Notes &amp; Follow-ups</small></span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabNotesBtn">Notes</button>
+      <button class="tab-btn" id="tabBoardBtn">Board</button>
+      <button class="tab-btn" id="tabEmailBtn">Email</button>
+    </div>
+    <button class="gear-btn" id="gearBtn" title="Settings">&#9881;</button>
+  </div>
+  <div class="accent-strip"></div>
+  <div class="content">
+
+    <div class="view active" id="notesView">
+      <div class="notes-layout">
+        <div class="notes-sidebar">
+          <button class="new-note-btn" id="newNoteBtn">+ New Note</button>
+          <div id="notesSidebarList"></div>
+        </div>
+        <div class="note-editor" id="noteEditor">
+          <div class="no-note-selected">Select a note or create a new one to get started.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="boardView">
+      <div class="stats" id="statsRow"></div>
+
+      <div class="quick-add">
+        <input type="text" id="quickAddInput" placeholder="Type a task in plain English, e.g. 'Call Meera about the invoice by Friday' — press Enter">
+        <select id="quickAddPriority" title="Priority">
+          <option value="auto">Auto priority</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <button class="btn btn-primary" id="quickAddBtn">Add Task</button>
+      </div>
+      <div class="status-line" id="quickAddStatus"></div>
+
+      <div class="controls-row">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search tasks...">
+        <select id="personFilter"><option value="">All people</option></select>
+        <select id="statusFilter">
+          <option value="">All statuses</option>
+          <option value="Open">Open</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Waiting on Others">Waiting on Others</option>
+          <option value="Done">Done</option>
+        </select>
+        <select id="priorityFilter">
+          <option value="">All priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <button class="chip chip-overdue" id="chipOverdue">Overdue</button>
+        <button class="chip chip-today" id="chipToday">Today</button>
+        <div class="view-toggle">
+          <button id="viewListBtn">List</button>
+          <button id="viewKanbanBtn">Kanban</button>
+        </div>
+        <button class="trash-btn" id="trashToggleBtn">Trash (0)</button>
+      </div>
+
+      <div class="task-list" id="taskList"></div>
+      <div class="kanban-board" id="kanbanBoard" style="display:none;"></div>
+    </div>
+
+    <div class="view" id="emailView">
+      <div class="email-layout">
+        <div class="email-inputs">
+          <label class="field-label">Unstructured content / context</label>
+          <textarea id="emailContext" class="email-textarea" placeholder="Drop in raw notes, bullet points, a meeting recap, anything relevant..."></textarea>
+          <label class="field-label" style="margin-top:14px;">How should this email read?</label>
+          <textarea id="emailInstructions" class="email-textarea short" placeholder="e.g. Formal email to a client explaining the delay, apologetic tone, keep it under 150 words, sign off as Ajay"></textarea>
+          <button class="btn btn-primary" id="generateEmailBtn" style="margin-top:12px;">Generate Email</button>
+          <span class="status-line" id="emailStatus"></span>
+        </div>
+        <div class="email-output">
+          <label class="field-label">Subject</label>
+          <input type="text" id="emailSubject" placeholder="Subject line appears here">
+          <label class="field-label" style="margin-top:10px;">Body (editable)</label>
+          <textarea id="emailBody" class="email-textarea tall" placeholder="Generated email appears here — feel free to edit it directly."></textarea>
+          <div class="email-revision-row">
+            <input type="text" id="emailRevisionInput" placeholder="Ask for a change, e.g. 'make it shorter and more formal'">
+            <button class="btn btn-secondary" id="applyRevisionBtn">Apply Change</button>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-secondary" id="copyEmailBtn">Copy Subject + Body</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="footerbar"></div>
+
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal">
+      <h3>Anthropic API Key</h3>
+      <p>Task extraction runs directly against the Anthropic API using your own key. It's stored only on this Mac, in this app's local storage — never sent anywhere except Anthropic.</p>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+      <div class="modal-actions">
+        <span></span>
+        <div class="right-group">
+          <button class="btn btn-secondary" id="closeSettingsBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveKeyBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="detailModal">
+    <div class="modal">
+      <h3 id="detailModalTitle">Task details</h3>
+      <label class="field-label">Item</label>
+      <textarea id="detailItem"></textarea>
+      <div class="field-row">
+        <div>
+          <label class="field-label">Type</label>
+          <select id="detailType"><option>Task</option><option>Follow-up</option></select>
+        </div>
+        <div>
+          <label class="field-label">Priority</label>
+          <select id="detailPriority"><option>High</option><option>Medium</option><option>Low</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="field-label">Related to (person/team)</label>
+          <input type="text" id="detailRelated">
+        </div>
+        <div>
+          <label class="field-label">Due date</label>
+          <input type="text" id="detailDue" placeholder="YYYY-MM-DD">
+        </div>
+      </div>
+      <label class="field-label">Status</label>
+      <select id="detailStatus">
+        <option>Open</option><option>In Progress</option><option>Waiting on Others</option><option>Done</option>
+      </select>
+      <label class="field-label">Notes</label>
+      <textarea id="detailNotes"></textarea>
+      <div id="detailSourceInfo" style="font-size:10.5px;color:#A9B6C4;margin-bottom:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="detailDeleteBtn">Remove</button>
+        <div class="right-group">
+          <button class="btn btn-secondary" id="detailCancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="detailSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="undoToast">
+    <span id="toastMsg"></span>
+    <button id="toastUndoBtn">Undo</button>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+const NOTES_KEY = 'ch_notes_v2';
+const TASKS_KEY = 'ch_tasks_v1';
+const API_KEY_STORAGE = 'ch_api_key';
+const PRIORITY_COLOR = { High: '#F07814', Medium: '#1899C2', Low: '#8ED4EE' };
+const STATUSES = ['Open', 'In Progress', 'Waiting on Others', 'Done'];
+
+let selectedNoteId = null;
+let showTrash = false;
+let personFilterVal = '';
+let searchVal = '';
+let priorityFilterVal = '';
+let dueFilterVal = '';
+let boardViewMode = localStorage.getItem('ch_board_view_mode') || 'list';
+let statusFilterVal = '';
+let lastDeletedId = null;
+let editingTaskId = null;
+const EXPANDED_GROUPS_KEY = 'ch_expanded_groups';
+function loadExpandedGroups() { try { return new Set(JSON.parse(localStorage.getItem(EXPANDED_GROUPS_KEY) || '[]')); } catch(e) { return new Set(); } }
+function saveExpandedGroups(set) { localStorage.setItem(EXPANDED_GROUPS_KEY, JSON.stringify(Array.from(set))); }
+let expandedGroups = loadExpandedGroups();
+
+function loadNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch(e) { return []; } }
+function saveNotesArr(n) { localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
+function loadTasks() { try { return JSON.parse(localStorage.getItem(TASKS_KEY) || '[]'); } catch(e) { return []; } }
+function saveTasks(t) { localStorage.setItem(TASKS_KEY, JSON.stringify(t)); }
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function escapeHtml(s) {
+  return s == null ? '' : String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+async function extractTextFromDocx(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const docXmlFile = zip.file('word/document.xml');
+  if (!docXmlFile) throw new Error('Not a valid .docx file');
+  const xmlStr = await docXmlFile.async('string');
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlStr, 'application/xml');
+  const paragraphs = Array.from(doc.getElementsByTagName('w:p'));
+  const lines = paragraphs.map(p => {
+    const textNodes = Array.from(p.getElementsByTagName('w:t'));
+    return textNodes.map(n => n.textContent).join('');
+  });
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+function sanitizeNoteText(s) {
+  if (!s) return s;
+  return s
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div)>/gi, '\n')
+    .replace(/<(p|div)[^>]*>/gi, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n');
+}
+function simpleHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return h;
+}
+function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+function statusClass(s) { return 'status-' + s.replace(/ /g, '-'); }
+function relativeDueLabel(due, status) {
+  if (!due) return '—';
+  const d = new Date(due + 'T00:00:00');
+  const now = new Date(todayStr() + 'T00:00:00');
+  const diffDays = Math.round((d - now) / 86400000);
+  if (status === 'Done') return due;
+  if (diffDays < 0) return `Overdue ${Math.abs(diffDays)}d`;
+  if (diffDays === 0) return 'Due today';
+  if (diffDays === 1) return 'Due tomorrow';
+  if (diffDays <= 6) return `Due in ${diffDays}d`;
+  return due;
+}
+
+function showToast(msg, onUndo) {
+  const t = document.getElementById('undoToast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  const btn = document.getElementById('toastUndoBtn');
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  newBtn.addEventListener('click', () => { onUndo(); t.classList.remove('show'); });
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
+}
+
+// ---------- Settings modal ----------
+document.getElementById('gearBtn').addEventListener('click', () => {
+  document.getElementById('apiKeyInput').value = getApiKey();
+  document.getElementById('settingsModal').classList.add('show');
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+  document.getElementById('settingsModal').classList.remove('show');
+});
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem(API_KEY_STORAGE, val);
+  document.getElementById('settingsModal').classList.remove('show');
+});
+
+// ---------- Tabs ----------
+document.getElementById('tabNotesBtn').addEventListener('click', () => switchTab('notes'));
+document.getElementById('tabBoardBtn').addEventListener('click', () => switchTab('board'));
+document.getElementById('tabEmailBtn').addEventListener('click', () => switchTab('email'));
+function switchTab(which) {
+  document.getElementById('notesView').classList.toggle('active', which === 'notes');
+  document.getElementById('boardView').classList.toggle('active', which === 'board');
+  document.getElementById('emailView').classList.toggle('active', which === 'email');
+  document.getElementById('tabNotesBtn').classList.toggle('active', which === 'notes');
+  document.getElementById('tabBoardBtn').classList.toggle('active', which === 'board');
+  document.getElementById('tabEmailBtn').classList.toggle('active', which === 'email');
+  if (which === 'board') renderBoard();
+  if (which === 'email') loadEmailWorkspace();
+}
+
+// ---------- Email assistant ----------
+const EMAIL_KEY = 'ch_email_workspace';
+function loadEmailData() { try { return JSON.parse(localStorage.getItem(EMAIL_KEY) || '{}'); } catch(e) { return {}; } }
+function saveEmailData(d) { localStorage.setItem(EMAIL_KEY, JSON.stringify(d)); }
+
+function loadEmailWorkspace() {
+  const d = loadEmailData();
+  document.getElementById('emailContext').value = d.context || '';
+  document.getElementById('emailInstructions').value = d.instructions || '';
+  document.getElementById('emailSubject').value = d.subject || '';
+  document.getElementById('emailBody').value = d.body || '';
+}
+
+function persistEmailWorkspace() {
+  saveEmailData({
+    context: document.getElementById('emailContext').value,
+    instructions: document.getElementById('emailInstructions').value,
+    subject: document.getElementById('emailSubject').value,
+    body: document.getElementById('emailBody').value,
+  });
+}
+['emailContext','emailInstructions','emailSubject','emailBody'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    clearTimeout(window._emailSaveTimer);
+    window._emailSaveTimer = setTimeout(persistEmailWorkspace, 500);
+  });
+});
+
+document.getElementById('generateEmailBtn').addEventListener('click', async () => {
+  const context = document.getElementById('emailContext').value.trim();
+  const instructions = document.getElementById('emailInstructions').value.trim();
+  const statusEl = document.getElementById('emailStatus');
+  const btn = document.getElementById('generateEmailBtn');
+  if (!context && !instructions) {
+    statusEl.textContent = 'Add some context or instructions first.';
+    return;
+  }
+  if (!getApiKey()) {
+    document.getElementById('gearBtn').click();
+    return;
+  }
+  btn.disabled = true;
+  statusEl.textContent = 'Drafting your email…';
+  const prompt = [
+    'You are an email writing assistant. Using the unstructured context and the instructions below, write a clear, well-organized email.',
+    'Return ONLY a JSON object with exactly these fields: {"subject": string, "body": string}. No markdown, no commentary, no code fences.',
+    'Unstructured context: ' + (context || '(none provided)'),
+    'Instructions for tone/content/recipient/length: ' + (instructions || '(use your best judgment)'),
+  ].join(String.fromCharCode(10));
+  try {
+    const raw = await callClaude(prompt);
+    const match = raw.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(match ? match[0] : raw);
+    document.getElementById('emailSubject').value = parsed.subject || '';
+    document.getElementById('emailBody').value = parsed.body || '';
+    persistEmailWorkspace();
+    statusEl.textContent = 'Draft ready — edit directly, or ask for a change below.';
+  } catch (e) {
+    statusEl.textContent = 'Could not generate the email — check your API key and try again.';
+  }
+  btn.disabled = false;
+});
+
+document.getElementById('applyRevisionBtn').addEventListener('click', async () => {
+  const revisionInput = document.getElementById('emailRevisionInput');
+  const revision = revisionInput.value.trim();
+  const statusEl = document.getElementById('emailStatus');
+  const currentSubject = document.getElementById('emailSubject').value;
+  const currentBody = document.getElementById('emailBody').value;
+  if (!revision) return;
+  if (!currentBody.trim()) {
+    statusEl.textContent = 'Generate a draft first, then ask for changes.';
+    return;
+  }
+  if (!getApiKey()) {
+    document.getElementById('gearBtn').click();
+    return;
+  }
+  const btn = document.getElementById('applyRevisionBtn');
+  btn.disabled = true;
+  statusEl.textContent = 'Applying your change…';
+  const prompt = [
+    'Here is a current email draft:',
+    'Subject: ' + currentSubject,
+    'Body: ' + currentBody,
+    'The user wants this change applied: ' + revision,
+    'Rewrite the email incorporating the requested change, keeping everything else consistent unless the change implies otherwise.',
+    'Return ONLY a JSON object with exactly these fields: {"subject": string, "body": string}. No markdown, no commentary, no code fences.',
+  ].join(String.fromCharCode(10));
+  try {
+    const raw = await callClaude(prompt);
+    const match = raw.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(match ? match[0] : raw);
+    document.getElementById('emailSubject').value = parsed.subject || currentSubject;
+    document.getElementById('emailBody').value = parsed.body || currentBody;
+    persistEmailWorkspace();
+    revisionInput.value = '';
+    statusEl.textContent = 'Updated — ask for another change anytime.';
+  } catch (e) {
+    statusEl.textContent = 'Could not apply that change — check your API key and try again.';
+  }
+  btn.disabled = false;
+});
+
+document.getElementById('copyEmailBtn').addEventListener('click', async () => {
+  const subject = document.getElementById('emailSubject').value;
+  const body = document.getElementById('emailBody').value;
+  const text = 'Subject: ' + subject + String.fromCharCode(10) + String.fromCharCode(10) + body;
+  try {
+    await navigator.clipboard.writeText(text);
+    const statusEl = document.getElementById('emailStatus');
+    statusEl.textContent = 'Copied to clipboard.';
+    setTimeout(() => { if (statusEl.textContent === 'Copied to clipboard.') statusEl.textContent = ''; }, 2000);
+  } catch (e) {}
+});
+
+// ---------- Notes sidebar + editor ----------
+function renderSidebar() {
+  const notes = loadNotes().slice().sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
+  const list = document.getElementById('notesSidebarList');
+  if (!notes.length) {
+    list.innerHTML = '<div class="empty-sidebar">No notes yet</div>';
+    return;
+  }
+  list.innerHTML = notes.map(n => `
+    <div class="note-item ${n.id === selectedNoteId ? 'selected' : ''}" data-id="${n.id}">
+      <div class="n-title">${escapeHtml(n.title || 'Untitled')}</div>
+      <div class="n-snippet">${escapeHtml((n.body||'').slice(0,60))}</div>
+      <div class="n-meta">${n.updatedAt ? new Date(n.updatedAt).toLocaleDateString() : ''}</div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('click', () => { selectedNoteId = el.getAttribute('data-id'); renderEditor(); renderSidebar(); });
+  });
+}
+
+function renderEditor() {
+  const editor = document.getElementById('noteEditor');
+  if (!selectedNoteId) {
+    editor.innerHTML = '<div class="no-note-selected">Select a note or create a new one to get started.</div>';
+    return;
+  }
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) {
+    selectedNoteId = null;
+    editor.innerHTML = '<div class="no-note-selected">Select a note or create a new one to get started.</div>';
+    return;
+  }
+  // Auto-heal legacy notes that were saved with literal <br> tags before this fix
+  {
+    const cleanBody = sanitizeNoteText(note.body || '');
+    const cleanTranscript = sanitizeNoteText(note.transcript || '');
+    if (cleanBody !== (note.body || '') || cleanTranscript !== (note.transcript || '')) {
+      note.body = cleanBody;
+      note.transcript = cleanTranscript;
+      saveNotesArr(notes);
+    }
+  }
+
+  const noteTasks = loadTasks().filter(t => t.sourceNoteId === note.id && !t.deleted);
+  const today = todayStr();
+  noteTasks.forEach(t => { t._overdue = !!(t.due && t.due < today && t.status !== 'Done'); });
+  const hasTranscript = !!(note.transcript && note.transcript.trim());
+  const showTranscript = note._transcriptOpen === false ? false : (!!note._transcriptOpen || hasTranscript);
+
+  editor.innerHTML = `
+    <input class="title-input" id="titleInput" value="${escapeHtml(note.title||'')}" placeholder="Note title...">
+    <div class="meta-row">Last updated ${note.updatedAt ? new Date(note.updatedAt).toLocaleString() : 'just now'}</div>
+    <textarea class="body-input" id="bodyInput" placeholder="Write anything — a task, a follow-up, a meeting recap. When you're ready, click Extract Tasks.">${escapeHtml(note.body||'')}</textarea>
+
+    ${showTranscript ? `
+    <div class="transcript-section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <label class="field-label" style="margin-bottom:0;">Meeting transcript (optional)</label>
+        <button type="button" class="attach-btn" id="hideTranscriptBtn" title="Collapse — your transcript is kept">Hide &#9650;</button>
+      </div>
+      <div class="transcript-attach-row">
+        <button type="button" class="attach-btn" id="attachTranscriptBtn">Attach .docx or .txt file</button>
+        <span class="transcript-or">or paste directly below</span>
+        <input type="file" id="transcriptFileInput" accept=".docx,.txt" style="display:none;">
+      </div>
+      <div class="attach-filename" id="attachStatus"></div>
+      <textarea id="transcriptInput" placeholder="Paste the call/meeting transcript here, or attach a file above...">${escapeHtml(note.transcript||'')}</textarea>
+      <div class="transcript-checkbox-row">
+        <input type="checkbox" id="includeTranscriptCheck" ${note.includeTranscriptInExtract ? 'checked' : ''}>
+        <label for="includeTranscriptCheck">Include this transcript when extracting tasks</label>
+      </div>
+    </div>
+    ` : `<button class="transcript-toggle" id="addTranscriptBtn">&#128196; ${hasTranscript ? 'Show meeting transcript &#10003;' : 'Add meeting transcript'}</button>`}
+
+    <div class="editor-actions">
+      <div class="left-actions">
+        <button class="btn btn-secondary" id="saveBtn">Save</button>
+        <button class="btn btn-primary" id="extractBtn">Extract Tasks</button>
+        <button class="btn btn-danger" id="deleteNoteBtn">Delete Note</button>
+      </div>
+      <span class="status-line" id="editorStatus"></span>
+    </div>
+
+    <div class="split-panes">
+      <div class="pane">
+        ${noteTasks.length ? `
+        <div class="note-tasks-heading">Tasks from this note (${noteTasks.length})</div>
+        ${noteTasks.map(t => {
+          const pc = PRIORITY_COLOR[t.priority] || '#999';
+          const done = t.status === 'Done';
+          return `
+            <div class="note-task-row" data-id="${t.id}">
+              <input type="checkbox" class="row-check" data-id="${t.id}" ${done ? 'checked' : ''}>
+              <span class="row-priority" style="background:${pc}"></span>
+              <span class="row-item ${done ? 'done' : ''}" style="flex:1;">${escapeHtml(t.item)}</span>
+              <span class="row-due ${t._overdue ? 'overdue' : ''}">${relativeDueLabel(t.due, t.status)}</span>
+              <span class="row-status ${statusClass(t.status || 'Open')}">${escapeHtml(t.status || 'Open')}</span>
+            </div>
+          `;
+        }).join('')}
+        ` : `<div class="note-tasks-heading">Tasks from this note</div><div class="minutes-empty">No tasks extracted yet.</div>`}
+      </div>
+      <div class="pane">
+        <div class="note-tasks-heading">Meeting minutes</div>
+        ${note.minutes ? `
+          <div class="minutes-pane">${escapeHtml(note.minutes)}</div>
+          <div class="minutes-meta">Generated ${note.minutesGeneratedAt ? new Date(note.minutesGeneratedAt).toLocaleString() : ''} · from ${note.minutesSource === 'transcript' ? 'note + transcript' : 'note only'}</div>
+          <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Regenerate Minutes</button></div>
+        ` : `
+          <div class="minutes-empty">Not generated yet — uses your note text, plus the transcript if one is attached. Runs only when you ask.</div>
+          <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Generate Minutes</button></div>
+        `}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('saveBtn').addEventListener('click', () => saveCurrentNote(true));
+  document.getElementById('extractBtn').addEventListener('click', extractFromCurrentNote);
+  document.getElementById('deleteNoteBtn').addEventListener('click', deleteCurrentNote);
+  const addTranscriptBtn = document.getElementById('addTranscriptBtn');
+  if (addTranscriptBtn) {
+    addTranscriptBtn.addEventListener('click', () => {
+      note._transcriptOpen = true;
+      saveNotesArr(notes);
+      renderEditor();
+      const ta = document.getElementById('transcriptInput');
+      if (ta) ta.focus();
+    });
+  }
+  const hideTranscriptBtn = document.getElementById('hideTranscriptBtn');
+  if (hideTranscriptBtn) {
+    hideTranscriptBtn.addEventListener('click', () => {
+      saveCurrentNote(false);
+      const notes3 = loadNotes();
+      const n3 = notes3.find(n => n.id === selectedNoteId);
+      if (n3) { n3._transcriptOpen = false; saveNotesArr(notes3); }
+      renderEditor();
+    });
+  }
+  const attachBtn = document.getElementById('attachTranscriptBtn');
+  const fileInput = document.getElementById('transcriptFileInput');
+  if (attachBtn && fileInput) {
+    attachBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const attachStatus = document.getElementById('attachStatus');
+      const ta = document.getElementById('transcriptInput');
+      if (attachStatus) attachStatus.textContent = 'Reading ' + file.name + '…';
+      try {
+        let text = '';
+        if (/\.docx$/i.test(file.name)) {
+          text = await extractTextFromDocx(file);
+        } else {
+          text = await file.text();
+        }
+        text = sanitizeNoteText(text);
+        if (ta) {
+          ta.value = ta.value.trim() ? (ta.value.trim() + '\n\n' + text) : text;
+        }
+        if (attachStatus) attachStatus.textContent = 'Attached: ' + file.name;
+        saveCurrentNote(false);
+      } catch (err) {
+        if (attachStatus) attachStatus.textContent = 'Could not read ' + file.name + ' — try pasting the text instead.';
+      }
+      fileInput.value = '';
+    });
+  }
+  const generateBtn = document.getElementById('generateMinutesBtn');
+  if (generateBtn) generateBtn.addEventListener('click', generateMinutesForCurrentNote);
+  editor.querySelectorAll('.note-task-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('row-check')) return;
+      openDetailModal(row.getAttribute('data-id'));
+    });
+  });
+  editor.querySelectorAll('.note-task-row .row-check').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-id');
+      const ts = loadTasks();
+      const t = ts.find(x => x.id === id);
+      if (t) t.status = cb.checked ? 'Done' : 'Open';
+      saveTasks(ts);
+      renderEditor();
+    });
+  });
+
+  let saveTimer = null;
+  const triggerAutosave = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveCurrentNote(false), 800);
+  };
+  function liveCleanIfNeeded(el) {
+    // Only clean when a stray tag is actually present, so we don't touch the cursor on every keystroke
+    if (/<br\s*\/?>|<\/?(p|div)[^>]*>|&nbsp;/i.test(el.value)) {
+      const cursorAtEnd = (el.selectionStart === el.value.length);
+      const cleaned = sanitizeNoteText(el.value);
+      if (cleaned !== el.value) {
+        el.value = cleaned;
+        if (cursorAtEnd) el.setSelectionRange(el.value.length, el.value.length);
+      }
+    }
+  }
+  document.getElementById('titleInput').addEventListener('input', triggerAutosave);
+  const bodyInputEl = document.getElementById('bodyInput');
+  bodyInputEl.addEventListener('input', () => { liveCleanIfNeeded(bodyInputEl); triggerAutosave(); });
+  bodyInputEl.addEventListener('paste', () => {
+    setTimeout(() => { liveCleanIfNeeded(bodyInputEl); triggerAutosave(); }, 0);
+  });
+  const transcriptInput = document.getElementById('transcriptInput');
+  if (transcriptInput) {
+    transcriptInput.addEventListener('input', () => { liveCleanIfNeeded(transcriptInput); triggerAutosave(); });
+    transcriptInput.addEventListener('paste', () => {
+      setTimeout(() => { liveCleanIfNeeded(transcriptInput); triggerAutosave(); }, 0);
+    });
+  }
+  const includeCheck = document.getElementById('includeTranscriptCheck');
+  if (includeCheck) {
+    includeCheck.addEventListener('change', () => {
+      const notes2 = loadNotes();
+      const n2 = notes2.find(n => n.id === selectedNoteId);
+      if (n2) { n2.includeTranscriptInExtract = includeCheck.checked; saveNotesArr(notes2); }
+    });
+  }
+}
+
+function saveCurrentNote(showStatus) {
+  if (!selectedNoteId) return;
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) return;
+  note.title = document.getElementById('titleInput').value;
+  const bodyEl = document.getElementById('bodyInput');
+  note.body = sanitizeNoteText(bodyEl.value);
+  if (bodyEl.value !== note.body) bodyEl.value = note.body;
+  const transcriptEl = document.getElementById('transcriptInput');
+  if (transcriptEl) {
+    note.transcript = sanitizeNoteText(transcriptEl.value);
+    if (transcriptEl.value !== note.transcript) transcriptEl.value = note.transcript;
+  }
+  const includeEl = document.getElementById('includeTranscriptCheck');
+  if (includeEl) note.includeTranscriptInExtract = includeEl.checked;
+  note.updatedAt = new Date().toISOString();
+  saveNotesArr(notes);
+  renderSidebar();
+  if (showStatus) {
+    const s = document.getElementById('editorStatus');
+    if (s) { s.textContent = 'Saved'; setTimeout(() => { if (s) s.textContent = ''; }, 1500); }
+  }
+}
+
+function deleteCurrentNote() {
+  if (!selectedNoteId) return;
+  let notes = loadNotes();
+  notes = notes.filter(n => n.id !== selectedNoteId);
+  saveNotesArr(notes);
+  let tasks = loadTasks();
+  tasks = tasks.filter(t => t.sourceNoteId !== selectedNoteId);
+  saveTasks(tasks);
+  selectedNoteId = null;
+  renderSidebar();
+  renderEditor();
+}
+
+document.getElementById('newNoteBtn').addEventListener('click', () => {
+  const notes = loadNotes();
+  const note = { id: uid(), title: 'New note', body: '', transcript: '', includeTranscriptInExtract: false, minutes: null, minutesGeneratedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), lastExtractedHash: null };
+  notes.push(note);
+  saveNotesArr(notes);
+  selectedNoteId = note.id;
+  renderSidebar();
+  renderEditor();
+  const titleEl = document.getElementById('titleInput');
+  if (titleEl) { titleEl.focus(); titleEl.select(); }
+});
+
+async function callClaude(prompt) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error('API_ERROR: ' + resp.status + ' ' + errText);
+  }
+  const data = await resp.json();
+  return (data.content && data.content[0] && data.content[0].text) || '';
+}
+
+function extractionPrompt(title, body, transcript) {
+  const today = todayStr();
+  const transcriptBlock = transcript ? (String.fromCharCode(10) + 'Meeting transcript (also consider this when extracting tasks):' + String.fromCharCode(10) + transcript + String.fromCharCode(10)) : '';
+  const header = 'You are extracting structured tasks from a manager note' + (transcript ? ' and an accompanying meeting transcript' : '') + '. Today date is ' + today + '.';
+  const instructions = 'Return ONLY a JSON array (no markdown, no commentary) of task objects. Each object has exactly these fields: item (string, short actionable phrase), parent (string or null - set only if this is a sub-task that must happen before another item in the SAME note, set to that other item exact item text), type (Task or Follow-up), related (string or null - person/team involved), priority (High, Medium, Low - infer from urgency, default Medium), status (always Open), due (string YYYY-MM-DD or null - resolve relative dates against today), notes (string or null - extra context). If there are no actionable items, return an empty array. If there are multiple distinct actionable items, return multiple objects, using parent to link prerequisite sub-tasks.';
+  return header + String.fromCharCode(10) + instructions + String.fromCharCode(10) + 'Note title: ' + (title || '') + String.fromCharCode(10) + 'Note body: ' + body + String.fromCharCode(10) + transcriptBlock;
+}
+
+function cleanTaskField(s) {
+  if (!s) return s;
+  return sanitizeNoteText(String(s)).replace(/\s*\n+\s*/g, ' ').trim();
+}
+function parseTaskJson(raw, fallbackText) {
+  const match = raw.match(/\[[\s\S]*\]/);
+  const jsonStr = match ? match[0] : raw;
+  let parsed = JSON.parse(jsonStr);
+  if (!Array.isArray(parsed)) parsed = [parsed];
+  return parsed.map(p => ({
+    item: cleanTaskField(p.item) || cleanTaskField(fallbackText.slice(0, 80)),
+    parent: cleanTaskField(p.parent) || null,
+    type: p.type || 'Task',
+    related: cleanTaskField(p.related) || null,
+    priority: ['High','Medium','Low'].includes(p.priority) ? p.priority : 'Medium',
+    status: 'Open',
+    due: p.due || null,
+    notes: cleanTaskField(p.notes) || null,
+  }));
+}
+
+async function extractFromCurrentNote() {
+  if (!selectedNoteId) return;
+  saveCurrentNote(false);
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note || !note.body || !note.body.trim()) return;
+
+  const useTranscript = !!(note.includeTranscriptInExtract && note.transcript && note.transcript.trim());
+  const hashInput = note.body + (useTranscript ? '|' + note.transcript : '');
+  const bodyHash = simpleHash(hashInput);
+  const statusEl = document.getElementById('editorStatus');
+  const extractBtn = document.getElementById('extractBtn');
+  if (note.lastExtractedHash === bodyHash) {
+    if (statusEl) statusEl.textContent = 'No changes since last extract.';
+    return;
+  }
+  if (!getApiKey()) {
+    if (statusEl) statusEl.textContent = 'Add your Anthropic API key first (gear icon, top right).';
+    document.getElementById('gearBtn').click();
+    return;
+  }
+
+  extractBtn.disabled = true;
+  if (statusEl) statusEl.textContent = useTranscript ? 'Reading note + transcript and pulling out tasks…' : 'Reading note and pulling out tasks…';
+
+  try {
+    const raw = await callClaude(extractionPrompt(note.title, note.body, useTranscript ? note.transcript : null));
+    const parsed = parseTaskJson(raw, note.body);
+
+    const tasks = loadTasks();
+    const kept = tasks.filter(t => !(t.sourceNoteId === note.id && t.status !== 'Done' && !t.deleted));
+    parsed.forEach(p => {
+      kept.push(Object.assign({}, p, {
+        id: uid(),
+        sourceNoteId: note.id,
+        sourceNoteTitle: note.title || 'Untitled',
+        deleted: false,
+        createdAt: new Date().toISOString(),
+      }));
+    });
+    saveTasks(kept);
+
+    note.lastExtractedHash = bodyHash;
+    saveNotesArr(notes);
+    if (statusEl) statusEl.textContent = `Extracted ${parsed.length} task(s).`;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = e && e.message === 'NO_API_KEY'
+      ? 'Add your Anthropic API key first (gear icon, top right).'
+      : 'Could not auto-parse this note — check your API key, or add the task manually on the Board.';
+  }
+  extractBtn.disabled = false;
+  renderEditor();
+  renderSidebar();
+}
+
+async function generateMinutesForCurrentNote() {
+  if (!selectedNoteId) return;
+  saveCurrentNote(false);
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) return;
+  const hasBody = !!(note.body && note.body.trim());
+  const hasTx = !!(note.transcript && note.transcript.trim());
+  if (!hasBody && !hasTx) return;
+
+  if (!getApiKey()) {
+    document.getElementById('gearBtn').click();
+    return;
+  }
+
+  const btn = document.getElementById('generateMinutesBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+  const promptParts = [];
+  if (hasTx) {
+    promptParts.push("Write clean, well-organized meeting minutes from the transcript below. Use short sections: Attendees (if identifiable), Key Discussion Points, Decisions Made, and Action Items. Keep it concise and skimmable, plain text only (no markdown symbols like # or asterisks). Base it primarily on the transcript; use the note title/body for extra context.");
+    promptParts.push("Note title: " + (note.title || ''));
+    promptParts.push("Note context: " + (note.body || ''));
+    promptParts.push("Transcript:");
+    promptParts.push(note.transcript);
+  } else {
+    promptParts.push("Write clean, well-organized meeting minutes based on the meeting notes below. The notes may be rough or fragmented - reconstruct them into: Key Discussion Points, Decisions Made, and Action Items (add Attendees only if names are clearly identifiable). Keep it concise and skimmable, plain text only (no markdown symbols like # or asterisks). Do not invent details that are not implied by the notes.");
+    promptParts.push("Note title: " + (note.title || ''));
+    promptParts.push("Meeting notes:");
+    promptParts.push(note.body);
+  }
+  const prompt = promptParts.join(String.fromCharCode(10));
+
+  try {
+    const minutesText = await callClaude(prompt);
+    note.minutes = minutesText.trim();
+    note.minutesGeneratedAt = new Date().toISOString();
+    note.minutesSource = hasTx ? 'transcript' : 'note';
+    saveNotesArr(notes);
+  } catch (e) {
+    note.minutes = 'Could not generate minutes — check your API key and try again.';
+    saveNotesArr(notes);
+  }
+  renderEditor();
+}
+
+// ---------- Quick add (Board) ----------
+async function quickAddTask() {
+  const input = document.getElementById('quickAddInput');
+  const text = sanitizeNoteText(input.value).trim();
+  if (!text) return;
+  const statusEl = document.getElementById('quickAddStatus');
+  const btn = document.getElementById('quickAddBtn');
+
+  if (!getApiKey()) {
+    statusEl.textContent = 'Add your Anthropic API key first (gear icon, top right).';
+    document.getElementById('gearBtn').click();
+    return;
+  }
+
+  const priorityOverride = document.getElementById('quickAddPriority').value;
+  const forcedPriority = priorityOverride !== 'auto' ? priorityOverride : null;
+
+  btn.disabled = true;
+  statusEl.textContent = 'Turning that into task(s)…';
+  try {
+    const raw = await callClaude(extractionPrompt('Quick add', text));
+    const parsed = parseTaskJson(raw, text);
+    const tasks = loadTasks();
+    parsed.forEach(p => {
+      tasks.push(Object.assign({}, p, {
+        id: uid(),
+        priority: forcedPriority || p.priority,
+        sourceNoteId: null,
+        sourceNoteTitle: null,
+        manual: true,
+        deleted: false,
+        createdAt: new Date().toISOString(),
+      }));
+    });
+    saveTasks(tasks);
+    input.value = '';
+    statusEl.textContent = `Added ${parsed.length} task(s).`;
+  } catch (e) {
+    const tasks = loadTasks();
+    tasks.push({
+      id: uid(), item: text.slice(0,100), parent: null, type: 'Task', related: null,
+      priority: forcedPriority || 'Medium', status: 'Open', due: null, notes: null,
+      sourceNoteId: null, sourceNoteTitle: null, manual: true, deleted: false, createdAt: new Date().toISOString(),
+    });
+    saveTasks(tasks);
+    input.value = '';
+    statusEl.textContent = 'Could not auto-parse — added as-is instead.';
+  }
+  btn.disabled = false;
+  renderBoard();
+  setTimeout(() => { statusEl.textContent = ''; }, 4000);
+}
+document.getElementById('quickAddBtn').addEventListener('click', quickAddTask);
+document.getElementById('quickAddInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') quickAddTask();
+});
+
+// ---------- Filters ----------
+document.getElementById('personFilter').addEventListener('change', (e) => { personFilterVal = e.target.value; renderBoard(); });
+document.getElementById('searchInput').addEventListener('input', (e) => { searchVal = e.target.value.trim(); renderBoard(); });
+document.getElementById('statusFilter').addEventListener('change', (e) => { statusFilterVal = e.target.value; renderBoard(); });
+document.getElementById('priorityFilter').addEventListener('change', (e) => { priorityFilterVal = e.target.value; renderBoard(); });
+document.getElementById('chipOverdue').addEventListener('click', () => { dueFilterVal = dueFilterVal === 'overdue' ? '' : 'overdue'; renderBoard(); });
+document.getElementById('chipToday').addEventListener('click', () => { dueFilterVal = dueFilterVal === 'today' ? '' : 'today'; renderBoard(); });
+document.getElementById('trashToggleBtn').addEventListener('click', () => { showTrash = !showTrash; renderBoard(); });
+document.getElementById('viewListBtn').addEventListener('click', () => { boardViewMode = 'list'; localStorage.setItem('ch_board_view_mode', 'list'); renderBoard(); });
+document.getElementById('viewKanbanBtn').addEventListener('click', () => { boardViewMode = 'kanban'; localStorage.setItem('ch_board_view_mode', 'kanban'); renderBoard(); });
+
+// ---------- Detail modal (edit / view) ----------
+function openDetailModal(taskId) {
+  const tasks = loadTasks();
+  const t = tasks.find(x => x.id === taskId);
+  if (!t) return;
+  editingTaskId = taskId;
+  document.getElementById('detailModalTitle').textContent = t.deleted ? 'Task details (in trash)' : 'Task details';
+  document.getElementById('detailItem').value = t.item || '';
+  document.getElementById('detailType').value = t.type || 'Task';
+  document.getElementById('detailPriority').value = t.priority || 'Medium';
+  document.getElementById('detailRelated').value = t.related || '';
+  document.getElementById('detailDue').value = t.due || '';
+  document.getElementById('detailStatus').value = STATUSES.includes(t.status) ? t.status : 'Open';
+  document.getElementById('detailNotes').value = t.notes || '';
+  const src = t.sourceNoteTitle ? `From note: ${escapeHtml(t.sourceNoteTitle)}` : (t.manual ? 'Added manually on the Board' : '');
+  document.getElementById('detailSourceInfo').textContent = src;
+  document.getElementById('detailDeleteBtn').textContent = t.deleted ? 'Restore' : 'Remove';
+  document.getElementById('detailModal').classList.add('show');
+}
+document.getElementById('detailCancelBtn').addEventListener('click', () => {
+  document.getElementById('detailModal').classList.remove('show');
+  editingTaskId = null;
+});
+document.getElementById('detailSaveBtn').addEventListener('click', () => {
+  if (!editingTaskId) return;
+  const tasks = loadTasks();
+  const t = tasks.find(x => x.id === editingTaskId);
+  if (!t) return;
+  t.item = document.getElementById('detailItem').value.trim() || t.item;
+  t.type = document.getElementById('detailType').value;
+  t.priority = document.getElementById('detailPriority').value;
+  t.related = document.getElementById('detailRelated').value.trim() || null;
+  t.due = document.getElementById('detailDue').value.trim() || null;
+  t.status = document.getElementById('detailStatus').value;
+  t.notes = document.getElementById('detailNotes').value.trim() || null;
+  saveTasks(tasks);
+  document.getElementById('detailModal').classList.remove('show');
+  editingTaskId = null;
+  renderBoard();
+});
+document.getElementById('detailDeleteBtn').addEventListener('click', () => {
+  if (!editingTaskId) return;
+  const tasks = loadTasks();
+  const t = tasks.find(x => x.id === editingTaskId);
+  if (!t) return;
+  if (t.deleted) {
+    t.deleted = false;
+  } else {
+    t.deleted = true;
+    lastDeletedId = t.id;
+    showToast('Task removed.', () => {
+      const ts = loadTasks();
+      const tt = ts.find(x => x.id === lastDeletedId);
+      if (tt) tt.deleted = false;
+      saveTasks(ts);
+      renderBoard();
+    });
+  }
+  saveTasks(tasks);
+  document.getElementById('detailModal').classList.remove('show');
+  editingTaskId = null;
+  renderBoard();
+});
+
+// ---------- Board render ----------
+function renderBoard() {
+  const allTasks = loadTasks();
+  const today = todayStr();
+  allTasks.forEach(t => { t._overdue = !!(t.due && t.due < today && t.status !== 'Done'); });
+
+  const activeTasks = allTasks.filter(t => !t.deleted);
+  const trashCount = allTasks.filter(t => t.deleted).length;
+  document.getElementById('trashToggleBtn').textContent = `Trash (${trashCount})`;
+  document.getElementById('trashToggleBtn').classList.toggle('active', showTrash);
+
+  // stats (always based on active, non-deleted tasks)
+  const total = activeTasks.length;
+  const doneCount = activeTasks.filter(t => t.status === 'Done').length;
+  const openCount = total - doneCount;
+  const pct = total ? Math.round((doneCount/total)*100) : 0;
+  const overdueCount = activeTasks.filter(t => t._overdue).length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card stat-total"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card stat-open"><div class="stat-num">${openCount}</div><div class="stat-label">Open</div></div>
+    <div class="stat-card stat-done"><div class="stat-num">${doneCount}</div><div class="stat-label">Done</div></div>
+    <div class="stat-card overdue"><div class="stat-num">${overdueCount}</div><div class="stat-label">Overdue</div></div>
+    <div class="stat-card progress">
+      <div class="stat-label">Completion</div>
+      <div class="stat-num" style="font-size:15px;">${pct}%</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;"></div></div>
+    </div>
+  `;
+
+  // person filter options
+  const people = Array.from(new Set(activeTasks.map(t => t.related).filter(Boolean))).sort();
+  const personSelect = document.getElementById('personFilter');
+  const currentVal = personFilterVal;
+  personSelect.innerHTML = '<option value="">All people</option>' + people.map(p => `<option value="${escapeHtml(p)}" ${p===currentVal?'selected':''}>${escapeHtml(p)}</option>`).join('');
+
+  // filter set to display
+  let displayTasks = showTrash ? allTasks.filter(t => t.deleted) : activeTasks;
+  if (personFilterVal) displayTasks = displayTasks.filter(t => t.related === personFilterVal);
+  if (statusFilterVal) displayTasks = displayTasks.filter(t => t.status === statusFilterVal);
+  if (priorityFilterVal) displayTasks = displayTasks.filter(t => t.priority === priorityFilterVal);
+  if (dueFilterVal === 'overdue') displayTasks = displayTasks.filter(t => t._overdue);
+  if (dueFilterVal === 'today') displayTasks = displayTasks.filter(t => t.due === today && t.status !== 'Done');
+  document.getElementById('chipOverdue').classList.toggle('active', dueFilterVal === 'overdue');
+  document.getElementById('chipToday').classList.toggle('active', dueFilterVal === 'today');
+  if (searchVal) {
+    const q = searchVal.toLowerCase();
+    displayTasks = displayTasks.filter(t =>
+      (t.item||'').toLowerCase().includes(q) ||
+      (t.related||'').toLowerCase().includes(q) ||
+      (t.notes||'').toLowerCase().includes(q) ||
+      (t.sourceNoteTitle||'').toLowerCase().includes(q)
+    );
+  }
+
+  const statusOrder = { 'Open': 0, 'In Progress': 1, 'Waiting on Others': 2, 'Done': 3 };
+  displayTasks = displayTasks.slice().sort((a,b) => {
+    if (a._overdue !== b._overdue) return a._overdue ? -1 : 1;
+    const so = (statusOrder[a.status]||0) - (statusOrder[b.status]||0);
+    if (so !== 0) return so;
+    return (a.due||'9999').localeCompare(b.due||'9999');
+  });
+
+  const listEl = document.getElementById('taskList');
+  const kanbanEl = document.getElementById('kanbanBoard');
+  document.getElementById('viewListBtn').classList.toggle('active', boardViewMode === 'list' || showTrash);
+  document.getElementById('viewKanbanBtn').classList.toggle('active', boardViewMode === 'kanban' && !showTrash);
+
+  function taskRowHtml(t) {
+    const pc = PRIORITY_COLOR[t.priority] || '#999';
+    const done = t.status === 'Done';
+    return `
+      <div class="task-row ${done ? 'done-row' : ''}" data-id="${t.id}">
+        ${showTrash ? '' : `<input type="checkbox" class="row-check" data-id="${t.id}" ${done ? 'checked' : ''}>`}
+        <span class="row-priority" style="background:${pc}"></span>
+        <span class="row-item ${done ? 'done' : ''}">${escapeHtml(t.item)}</span>
+        ${t.type ? `<span class="row-tag">${escapeHtml(t.type)}</span>` : ''}
+        <span class="row-person">${escapeHtml(t.related || '')}</span>
+        <span class="row-due ${t._overdue ? 'overdue' : ''}">${relativeDueLabel(t.due, t.status)}</span>
+        <span class="row-status ${statusClass(t.status || 'Open')}">${escapeHtml(t.status || 'Open')}</span>
+      </div>
+    `;
+  }
+
+  const useKanban = (boardViewMode === 'kanban') && !showTrash;
+  listEl.style.display = useKanban ? 'none' : '';
+  kanbanEl.style.display = useKanban ? 'flex' : 'none';
+
+  if (useKanban) {
+    kanbanEl.innerHTML = '';
+    function kanbanCardHtml(t) {
+      const pc = PRIORITY_COLOR[t.priority] || '#999';
+      const done = t.status === 'Done';
+      const overdueBadge = t._overdue ? '<span class="badge overdue">OVERDUE</span>' : '';
+      const parentLine = t.parent ? `<div class="kc-parent">&#8627; sub-task of: ${escapeHtml(t.parent)}</div>` : '';
+      const sourceLine = t.sourceNoteTitle ? `<div class="kc-source">from note: ${escapeHtml(t.sourceNoteTitle)}</div>` : (t.manual ? `<div class="kc-source">Added manually</div>` : '');
+      return `
+        <div class="kanban-card${done ? ' done-card' : ''}" data-id="${t.id}">
+          <div class="kanban-card-top">
+            <input type="checkbox" class="row-check" data-id="${t.id}" ${done ? 'checked' : ''}>
+            <span class="row-priority" style="background:${pc}"></span>
+            <span class="kc-item${done ? ' done' : ''}">${escapeHtml(t.item)}</span>
+            ${overdueBadge}
+          </div>
+          ${parentLine}
+          <div class="kc-meta">
+            ${t.type ? `<span class="kc-tag">${escapeHtml(t.type)}</span>` : ''}
+            ${t.related ? `<span class="kc-tag">${escapeHtml(t.related)}</span>` : ''}
+            <span>${relativeDueLabel(t.due, t.status)}</span>
+          </div>
+          ${sourceLine}
+        </div>
+      `;
+    }
+    kanbanEl.innerHTML = STATUSES.map(s => {
+      const items = displayTasks.filter(t => (t.status || 'Open') === s);
+      const cardsHtml = items.length ? items.map(kanbanCardHtml).join('') : '<div class="kanban-empty">Drop tasks here</div>';
+      return `
+        <div class="kanban-column" data-status="${s}">
+          <div class="kanban-column-header">${s} <span class="kanban-count">${items.length}</span></div>
+          ${cardsHtml}
+        </div>
+      `;
+    }).join('');
+
+    // Drag & drop between columns
+    kanbanEl.querySelectorAll('.kanban-card').forEach(card => {
+      card.setAttribute('draggable', 'true');
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', card.getAttribute('data-id'));
+        e.dataTransfer.effectAllowed = 'move';
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    });
+    kanbanEl.querySelectorAll('.kanban-column').forEach(col => {
+      col.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('drag-over'); });
+      col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+      col.addEventListener('drop', (e) => {
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        const id = e.dataTransfer.getData('text/plain');
+        const newStatus = col.getAttribute('data-status');
+        if (!id || !newStatus) return;
+        const ts = loadTasks();
+        const t = ts.find(x => x.id === id);
+        if (t && t.status !== newStatus) {
+          t.status = newStatus;
+          saveTasks(ts);
+          if (newStatus === 'Done') celebrate(e.clientX, e.clientY);
+          renderBoard();
+        }
+      });
+    });
+
+    kanbanEl.querySelectorAll('.kanban-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.classList.contains('row-check')) return;
+        openDetailModal(card.getAttribute('data-id'));
+      });
+    });
+    kanbanEl.querySelectorAll('.kanban-card .row-check').forEach(cb => {
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        const id = cb.getAttribute('data-id');
+        const ts = loadTasks();
+        const t = ts.find(x => x.id === id);
+        if (t) t.status = cb.checked ? 'Done' : 'Open';
+        saveTasks(ts);
+        renderBoard();
+      });
+    });
+    return;
+  }
+
+  if (!displayTasks.length) {
+    listEl.innerHTML = `<div class="empty">${showTrash ? 'Trash is empty' : 'No tasks match this view'}</div>`;
+  } else if (showTrash) {
+    // Trash stays a flat list — grouping isn't useful for restoring items
+    listEl.innerHTML = displayTasks.map(taskRowHtml).join('');
+  } else {
+    // Group by source note (or "Added manually" for quick-add tasks)
+    const groups = new Map();
+    displayTasks.forEach(t => {
+      const gid = t.sourceNoteId || 'manual';
+      const gtitle = t.sourceNoteId ? (t.sourceNoteTitle || 'Untitled note') : 'Added manually on Board';
+      if (!groups.has(gid)) groups.set(gid, { id: gid, title: gtitle, tasks: [] });
+      groups.get(gid).tasks.push(t);
+    });
+    let groupList = Array.from(groups.values());
+    groupList.forEach(g => {
+      g.overdueCount = g.tasks.filter(t => t._overdue).length;
+      g.openCount = g.tasks.filter(t => t.status !== 'Done').length;
+    });
+    groupList.sort((a,b) => {
+      if (a.overdueCount !== b.overdueCount) return b.overdueCount - a.overdueCount;
+      if (a.openCount !== b.openCount) return b.openCount - a.openCount;
+      return a.title.localeCompare(b.title);
+    });
+
+    listEl.innerHTML = groupList.map(g => {
+      const isExpanded = expandedGroups.has(g.id);
+      const countBadge = g.overdueCount > 0
+        ? `<span class="group-count has-overdue">${g.overdueCount} overdue</span>`
+        : `<span class="group-count">${g.tasks.length}</span>`;
+      return `
+        <div class="task-group">
+          <div class="group-header ${isExpanded ? 'expanded' : ''}" data-gid="${g.id}">
+            <span class="group-chevron">&#9656;</span>
+            <span class="group-title">${escapeHtml(g.title)}</span>
+            ${countBadge}
+          </div>
+          <div class="group-rows ${isExpanded ? 'expanded' : ''}" data-gid-rows="${g.id}">
+            ${g.tasks.map(taskRowHtml).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  listEl.querySelectorAll('.group-header').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const gid = hdr.getAttribute('data-gid');
+      if (expandedGroups.has(gid)) expandedGroups.delete(gid); else expandedGroups.add(gid);
+      saveExpandedGroups(expandedGroups);
+      renderBoard();
+    });
+  });
+  listEl.querySelectorAll('.task-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('row-check')) return;
+      openDetailModal(row.getAttribute('data-id'));
+    });
+  });
+  listEl.querySelectorAll('.row-check').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-id');
+      const ts = loadTasks();
+      const t = ts.find(x => x.id === id);
+      if (t) t.status = cb.checked ? 'Done' : 'Open';
+      saveTasks(ts);
+      renderBoard();
+    });
+  });
+}
+
+function celebrate(x, y) {
+  const colors = ['#F07814', '#29B8D8', '#6FB43C', '#4FC3F0', '#F5B678'];
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div');
+    p.className = 'celebrate-particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = colors[i % colors.length];
+    const angle = (Math.PI * 2 * i) / 10 + Math.random() * 0.5;
+    const dist = 26 + Math.random() * 26;
+    p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--dy', (Math.sin(angle) * dist - 14) + 'px');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 700);
+  }
+}
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el && el.classList && el.classList.contains('row-check') && el.checked) {
+    const r = el.getBoundingClientRect();
+    celebrate(r.left + 8, r.top + 8);
+  }
+}, true);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.getElementById('settingsModal').classList.remove('show');
+  document.getElementById('detailModal').classList.remove('show');
+  editingTaskId = null;
+});
+document.addEventListener('keydown', (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (!mod) return;
+  const k = e.key.toLowerCase();
+  if (k === 'k') { e.preventDefault(); switchTab('board'); document.getElementById('quickAddInput').focus(); }
+  if (k === 'f') { e.preventDefault(); switchTab('board'); document.getElementById('searchInput').focus(); }
+  if (k === 'n') { e.preventDefault(); switchTab('notes'); document.getElementById('newNoteBtn').click(); }
+});
+
+// One-time heal: strip legacy <br>/HTML from every stored note AND every stored task
+(function migrateLegacyMarkup() {
+  const markupRe = /<br\s*\/?>|<\/?(p|div)[^>]*>|&nbsp;|<[^>]+>/i;
+  const notes = loadNotes();
+  let nChanged = false;
+  notes.forEach(n => {
+    ['title', 'body', 'transcript', 'minutes'].forEach(k => {
+      if (n[k] && markupRe.test(String(n[k]))) {
+        const c = sanitizeNoteText(String(n[k]));
+        if (c !== n[k]) { n[k] = c; nChanged = true; }
+      }
+    });
+  });
+  if (nChanged) saveNotesArr(notes);
+  const ts = loadTasks();
+  let tChanged = false;
+  ts.forEach(t => {
+    ['item', 'notes', 'parent', 'sourceNoteTitle', 'related'].forEach(k => {
+      if (t[k] && markupRe.test(String(t[k]))) {
+        const c = cleanTaskField(t[k]);
+        if (c !== t[k]) { t[k] = c; tChanged = true; }
+      }
+    });
+  });
+  if (tChanged) saveTasks(ts);
+})();
+
+renderSidebar();
+renderEditor();
+renderBoard();
+if (!getApiKey()) {
+  setTimeout(() => document.getElementById('gearBtn').click(), 400);
+}
+</script>
+</body>
+</html>

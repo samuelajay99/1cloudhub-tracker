@@ -1,0 +1,14 @@
+{
+  "name": "1cloudhub-tracker",
+  "version": "1.0.0",
+  "description": "1CloudHub Notes & Task Tracker",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "package-mac": "npx electron-packager . \"1CloudHub Tracker\" --platform=darwin --arch=universal --out=dist --overwrite"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-packager": "^17.1.2"
+  }
+}
