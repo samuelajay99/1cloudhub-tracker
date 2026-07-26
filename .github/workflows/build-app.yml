@@ -1,0 +1,74 @@
+name: Build app installers
+
+# Push a tag like "v1.0.1" to cut a new release: this builds unsigned Mac
+# (arm64 + x64) and Windows installers and uploads them to the "releases"
+# bucket in Supabase Storage under stable filenames, so the website's
+# download links always point at the latest build.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build-mac
+      - name: Rename artifacts to stable filenames
+        run: |
+          mkdir -p out
+          cp dist/*-arm64.dmg "out/1CloudHub-Tracker-mac-arm64.dmg"
+          cp "$(ls dist/*.dmg | grep -v arm64)" "out/1CloudHub-Tracker-mac-x64.dmg"
+      - name: Upload to Supabase Storage
+        working-directory: app/out
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for f in *; do
+            curl -sf -X POST "$SUPABASE_URL/storage/v1/object/releases/$f" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "x-upsert: true" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$f"
+          done
+
+  build-win:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build-win
+      - name: Rename artifact to stable filename
+        shell: bash
+        run: |
+          mkdir -p out
+          cp dist/*.exe "out/1CloudHub-Tracker-win-x64.exe"
+      - name: Upload to Supabase Storage
+        working-directory: app/out
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for f in *; do
+            curl -sf -X POST "$SUPABASE_URL/storage/v1/object/releases/$f" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "x-upsert: true" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$f"
+          done

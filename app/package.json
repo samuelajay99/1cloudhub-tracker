@@ -1,0 +1,40 @@
+{
+  "name": "1cloudhub-tracker",
+  "version": "1.0.0",
+  "description": "1CloudHub Notes & Task Tracker",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-mac": "electron-builder --mac --publish never",
+    "build-win": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.1cloudhub.tracker",
+    "productName": "1CloudHub Tracker",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "assets/**/*"
+    ],
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "identity": null,
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

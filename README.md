@@ -1,0 +1,73 @@
+# 1CloudHub Tracker
+
+Invite-only notes, AI task extraction, kanban board, and email drafting for
+a manager's daily workflow. Originally a local-only Claude Cowork build; now
+three pieces working together:
+
+```
+app/          Electron desktop app (Mac + Windows) — what people actually use
+website/      Next.js site — sign up, admin approval, download links
+supabase/     Auth, database, and the Edge Function holding the Anthropic key
+.github/      CI that builds installers on every version tag
+```
+
+## How it fits together
+
+```
+Electron app (Mac/Windows)          Website (Next.js on Vercel)
+        |                                   |
+        |--- login/signup ----------->  Supabase Auth
+        |--- notes/tasks sync -------->  Supabase Postgres (Row Level Security:
+        |                                  each user only ever sees their own rows)
+        |--- AI requests ------------>  Supabase Edge Function ("claude-proxy")
+                                              |
+                                        holds ANTHROPIC_API_KEY as a secret,
+                                        calls api.anthropic.com, returns result
+```
+
+Nobody but the Edge Function ever sees the Anthropic key — everyone uses the
+one shared key, billed to the account that owns the Supabase project. Access
+is invite-only: anyone can sign up, but the app is unusable until an admin
+approves the account (`profiles.status = 'approved'`), enforced by Row Level
+Security, not just app-side checks.
+
+## Setup (do this once)
+
+1. **Supabase** — follow `supabase/README.md` start to finish first;
+   everything else depends on it.
+2. **App** — `app/CLAUDE.md` has dev/build instructions. Fill in
+   `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `app/index.html` before running.
+3. **Website** — `cd website && npm install`, copy
+   `.env.local.example` to `.env.local` and fill in the same two Supabase
+   values, then `npm run dev`. Deploy: connect the repo to
+   [Vercel](https://vercel.com) (root directory `website/`), add the same
+   two env vars as Vercel project settings, deploy on the free `*.vercel.app`
+   subdomain.
+4. **CI / releases** — add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as
+   GitHub Actions secrets (repo Settings → Secrets and variables → Actions).
+   Push a tag like `v1.0.1` to trigger `.github/workflows/build-app.yml`,
+   which builds unsigned Mac (arm64 + x64) and Windows installers and
+   uploads them to the Supabase Storage `releases` bucket. The website's
+   `/dashboard` links straight to those files.
+
+## Current known limitations (deliberate, for v1)
+
+- **Unsigned installers**: Mac needs right-click → Open once (Gatekeeper),
+  Windows needs "More info → Run anyway" (SmartScreen). Real code signing
+  needs a paid Apple Developer account (~$99/yr) and a Windows signing cert
+  (~$100-400/yr) — worth it once there's real demand, skipped for now.
+- **Sync, not real-time collaboration**: each account's notes/tasks sync to
+  Supabase in the background and merge on sign-in; two devices signed into
+  the same account editing simultaneously isn't a target use case yet (see
+  `app/CLAUDE.md`'s "Auth + cloud sync" section for the exact merge rules).
+- **Admin approval is manual**: no email notifications when someone
+  requests access — check the website's `/admin` page (or the app's
+  equivalent) periodically.
+
+## Where things live
+
+- Full architecture rationale and phase-by-phase build notes:
+  `~/.claude/plans/crispy-hugging-meadow.md` (the plan this was built from).
+- App-specific implementation details, "don't regress these" bugs, and the
+  cloud-sync design: `app/CLAUDE.md`.
+- Database schema and RLS policies: `supabase/migrations/0001_init.sql`.

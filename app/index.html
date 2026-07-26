@@ -490,9 +490,64 @@
 
   .badge.overdue { background: #FDEEEC; color: #C0392B; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 7px; margin-left: auto; flex-shrink: 0; }
 
+  /* ---------- Auth gate ---------- */
+  .auth-gate {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    -webkit-app-region: drag;
+  }
+  .auth-card {
+    width: 340px; background: var(--card-solid); border-radius: var(--r-xl);
+    box-shadow: var(--shadow-2); padding: 30px 26px; -webkit-app-region: no-drag;
+  }
+  .auth-brand {
+    color: var(--navy); font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; font-family: 'Space Grotesk', 'Courier New', monospace;
+    margin-bottom: 18px;
+  }
+  .auth-brand small { display: block; font-size: 9.5px; letter-spacing: 0.5px; color: var(--muted); text-transform: none; font-weight: 500; }
+  .auth-card h2 { margin: 0 0 6px; font-size: 18px; color: var(--ink); }
+  .auth-sub { font-size: 12px; color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
+  .auth-card input[type=email], .auth-card input[type=password] {
+    width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 13px;
+    font-size: 13px; font-family: inherit; background: rgba(255,255,255,0.9);
+    margin-bottom: 10px;
+  }
+  .auth-card input:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.13); }
+  .auth-toggle { font-size: 11.5px; color: var(--muted); text-align: center; margin: 14px 0 0; }
+  .auth-toggle a { color: var(--blue); text-decoration: none; font-weight: 600; margin-left: 4px; }
+  .auth-toggle a:hover { text-decoration: underline; }
+
 </style>
 </head>
 <body>
+  <div id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">TRACKER<small>Notes &amp; Follow-ups</small></div>
+      <div id="authFormView">
+        <h2 id="authFormTitle">Sign in</h2>
+        <p class="auth-sub" id="authFormSub">Invite-only. Sign in with your account.</p>
+        <input type="email" id="authEmail" placeholder="you@company.com" autocomplete="email">
+        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+        <div class="status-line" id="authStatus"></div>
+        <button class="btn btn-primary" id="authSubmitBtn" style="width:100%;margin-top:8px;">Sign in</button>
+        <p class="auth-toggle">
+          <span id="authToggleText">Don't have an account?</span>
+          <a href="#" id="authToggleLink">Request access</a>
+        </p>
+      </div>
+      <div id="authPendingView" style="display:none;">
+        <h2>Request received</h2>
+        <p class="auth-sub">Your account is waiting for approval. You'll be able to sign in as soon as it's approved — no need to sign up again, just come back and sign in.</p>
+        <button class="btn btn-secondary" id="pendingSignOutBtn" style="width:100%;margin-top:8px;">Sign out</button>
+      </div>
+      <div id="authRejectedView" style="display:none;">
+        <h2>Access not granted</h2>
+        <p class="auth-sub">This account's access request was not approved.</p>
+        <button class="btn btn-secondary" id="rejectedSignOutBtn" style="width:100%;margin-top:8px;">Sign out</button>
+      </div>
+    </div>
+  </div>
+  <div id="appShell" style="display:none;">
   <div class="topbar">
     <div class="brand-wrap">
       <div class="logo-badge"><img src="data:image/png;base64,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"></div>
@@ -596,14 +651,14 @@
 
   <div class="modal-backdrop" id="settingsModal">
     <div class="modal">
-      <h3>Anthropic API Key</h3>
-      <p>Task extraction runs directly against the Anthropic API using your own key. It's stored only on this Mac, in this app's local storage — never sent anywhere except Anthropic.</p>
-      <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+      <h3>Account</h3>
+      <p>Signed in as <strong id="accountEmailLabel"></strong>. AI features run through the shared 1CloudHub server — no API key needed here.</p>
+      <div class="status-line" id="syncStatusLabel"></div>
       <div class="modal-actions">
         <span></span>
         <div class="right-group">
-          <button class="btn btn-secondary" id="closeSettingsBtn">Cancel</button>
-          <button class="btn btn-primary" id="saveKeyBtn">Save</button>
+          <button class="btn btn-secondary" id="closeSettingsBtn">Close</button>
+          <button class="btn btn-primary" id="signOutBtn">Sign out</button>
         </div>
       </div>
     </div>
@@ -655,12 +710,23 @@
     <span id="toastMsg"></span>
     <button id="toastUndoBtn">Undo</button>
   </div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// Fill these in from your Supabase project (Settings -> API) before shipping.
+// Safe to be public: the anon key only works within this project's Row Level
+// Security policies (see supabase/migrations/0001_init.sql) and the real
+// Anthropic key lives only in the claude-proxy Edge Function, never here.
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const NOTES_KEY = 'ch_notes_v2';
 const TASKS_KEY = 'ch_tasks_v1';
-const API_KEY_STORAGE = 'ch_api_key';
 const PRIORITY_COLOR = { High: '#F07814', Medium: '#1899C2', Low: '#8ED4EE' };
 const STATUSES = ['Open', 'In Progress', 'Waiting on Others', 'Done'];
 
@@ -680,9 +746,120 @@ function saveExpandedGroups(set) { localStorage.setItem(EXPANDED_GROUPS_KEY, JSO
 let expandedGroups = loadExpandedGroups();
 
 function loadNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch(e) { return []; } }
-function saveNotesArr(n) { localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
+function saveNotesArr(n) { localStorage.setItem(NOTES_KEY, JSON.stringify(n)); scheduleCloudPush(); }
 function loadTasks() { try { return JSON.parse(localStorage.getItem(TASKS_KEY) || '[]'); } catch(e) { return []; } }
-function saveTasks(t) { localStorage.setItem(TASKS_KEY, JSON.stringify(t)); }
+function saveTasks(t) { localStorage.setItem(TASKS_KEY, JSON.stringify(t)); scheduleCloudPush(); }
+
+// ---------- Cloud sync (Supabase) ----------
+// Local-first: localStorage stays the fast synchronous source of truth for
+// every render (~25 call sites read loadNotes()/loadTasks() synchronously).
+// Every save also fires a best-effort background upsert to Supabase; on
+// sign-in we pull the user's rows and merge them into the local cache so a
+// second device picks up prior data. See CLAUDE.md for the full design.
+let currentUser = null; // { id, email } once signed in + approved
+let syncTimer = null;
+
+function setSyncStatus(s) {
+  const el = document.getElementById('syncStatusLabel');
+  if (!el) return;
+  el.textContent = s === 'syncing' ? 'Syncing…' : s === 'synced' ? 'Synced to your account' : s === 'error' ? 'Sync error — will retry on next change' : '';
+}
+
+function noteToRow(n) {
+  return {
+    id: n.id, user_id: currentUser.id, title: n.title || null, body: n.body || null,
+    transcript: n.transcript || null, include_transcript_in_extract: !!n.includeTranscriptInExtract,
+    minutes: n.minutes || null, minutes_generated_at: n.minutesGeneratedAt || null,
+    minutes_source: n.minutesSource || null,
+    last_extracted_hash: n.lastExtractedHash != null ? String(n.lastExtractedHash) : null,
+    created_at: n.createdAt || new Date().toISOString(), updated_at: n.updatedAt || new Date().toISOString(),
+  };
+}
+function rowToNote(r) {
+  return {
+    id: r.id, title: r.title, body: r.body, transcript: r.transcript,
+    includeTranscriptInExtract: r.include_transcript_in_extract, minutes: r.minutes,
+    minutesGeneratedAt: r.minutes_generated_at, minutesSource: r.minutes_source,
+    lastExtractedHash: r.last_extracted_hash, createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+function taskToRow(t) {
+  return {
+    id: t.id, user_id: currentUser.id, item: t.item || null, parent: t.parent || null, type: t.type || null,
+    related: t.related || null, priority: t.priority || null, status: t.status || null, due: t.due || null,
+    notes: t.notes || null, source_note_id: t.sourceNoteId || null, source_note_title: t.sourceNoteTitle || null,
+    manual: !!t.manual, deleted: !!t.deleted, created_at: t.createdAt || new Date().toISOString(),
+  };
+}
+function rowToTask(r) {
+  return {
+    id: r.id, item: r.item, parent: r.parent, type: r.type, related: r.related, priority: r.priority,
+    status: r.status, due: r.due, notes: r.notes, sourceNoteId: r.source_note_id, sourceNoteTitle: r.source_note_title,
+    manual: r.manual, deleted: r.deleted, createdAt: r.created_at,
+  };
+}
+
+function scheduleCloudPush() {
+  if (!currentUser) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToCloud, 600);
+}
+
+async function pushToCloud() {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try {
+    const notes = loadNotes();
+    const tasks = loadTasks();
+    const email = loadEmailData();
+    if (notes.length) await supabase.from('notes').upsert(notes.map(noteToRow));
+    if (tasks.length) await supabase.from('tasks').upsert(tasks.map(taskToRow));
+    await supabase.from('email_workspace').upsert({ user_id: currentUser.id, data: email, updated_at: new Date().toISOString() });
+    setSyncStatus('synced');
+  } catch (e) {
+    console.error('cloud push failed', e);
+    setSyncStatus('error');
+  }
+}
+
+async function pullFromCloud() {
+  if (!currentUser) return;
+  try {
+    const [notesRes, tasksRes, emailRes] = await Promise.all([
+      supabase.from('notes').select('*').eq('user_id', currentUser.id),
+      supabase.from('tasks').select('*').eq('user_id', currentUser.id),
+      supabase.from('email_workspace').select('*').eq('user_id', currentUser.id).maybeSingle(),
+    ]);
+
+    const localNotes = loadNotes();
+    const noteById = new Map(localNotes.map(n => [n.id, n]));
+    (notesRes.data || []).forEach(row => {
+      const cloudNote = rowToNote(row);
+      const local = noteById.get(cloudNote.id);
+      if (!local || (cloudNote.updatedAt || '') > (local.updatedAt || '')) {
+        noteById.set(cloudNote.id, cloudNote);
+      }
+    });
+    localStorage.setItem(NOTES_KEY, JSON.stringify(Array.from(noteById.values())));
+
+    const localTasks = loadTasks();
+    const localTaskIds = new Set(localTasks.map(t => t.id));
+    const mergedTasks = localTasks.slice();
+    (tasksRes.data || []).forEach(row => {
+      if (!localTaskIds.has(row.id)) mergedTasks.push(rowToTask(row));
+    });
+    localStorage.setItem(TASKS_KEY, JSON.stringify(mergedTasks));
+
+    const localEmail = loadEmailData();
+    if (emailRes.data && emailRes.data.data && Object.keys(localEmail).length === 0) {
+      localStorage.setItem(EMAIL_KEY, JSON.stringify(emailRes.data.data));
+    }
+    setSyncStatus('synced');
+  } catch (e) {
+    console.error('cloud pull failed', e);
+    setSyncStatus('error');
+  }
+}
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function escapeHtml(s) {
@@ -723,7 +900,6 @@ function simpleHash(s) {
   for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
   return h;
 }
-function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
 function statusClass(s) { return 'status-' + s.replace(/ /g, '-'); }
 function relativeDueLabel(due, status) {
   if (!due) return '—';
@@ -752,16 +928,14 @@ function showToast(msg, onUndo) {
 
 // ---------- Settings modal ----------
 document.getElementById('gearBtn').addEventListener('click', () => {
-  document.getElementById('apiKeyInput').value = getApiKey();
+  document.getElementById('accountEmailLabel').textContent = currentUser ? currentUser.email : '';
   document.getElementById('settingsModal').classList.add('show');
 });
 document.getElementById('closeSettingsBtn').addEventListener('click', () => {
   document.getElementById('settingsModal').classList.remove('show');
 });
-document.getElementById('saveKeyBtn').addEventListener('click', () => {
-  const val = document.getElementById('apiKeyInput').value.trim();
-  localStorage.setItem(API_KEY_STORAGE, val);
-  document.getElementById('settingsModal').classList.remove('show');
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
 });
 
 // ---------- Tabs ----------
@@ -782,7 +956,7 @@ function switchTab(which) {
 // ---------- Email assistant ----------
 const EMAIL_KEY = 'ch_email_workspace';
 function loadEmailData() { try { return JSON.parse(localStorage.getItem(EMAIL_KEY) || '{}'); } catch(e) { return {}; } }
-function saveEmailData(d) { localStorage.setItem(EMAIL_KEY, JSON.stringify(d)); }
+function saveEmailData(d) { localStorage.setItem(EMAIL_KEY, JSON.stringify(d)); scheduleCloudPush(); }
 
 function loadEmailWorkspace() {
   const d = loadEmailData();
@@ -816,10 +990,6 @@ document.getElementById('generateEmailBtn').addEventListener('click', async () =
     statusEl.textContent = 'Add some context or instructions first.';
     return;
   }
-  if (!getApiKey()) {
-    document.getElementById('gearBtn').click();
-    return;
-  }
   btn.disabled = true;
   statusEl.textContent = 'Drafting your email…';
   const prompt = [
@@ -837,7 +1007,7 @@ document.getElementById('generateEmailBtn').addEventListener('click', async () =
     persistEmailWorkspace();
     statusEl.textContent = 'Draft ready — edit directly, or ask for a change below.';
   } catch (e) {
-    statusEl.textContent = 'Could not generate the email — check your API key and try again.';
+    statusEl.textContent = 'Could not generate the email — check your connection and try again.';
   }
   btn.disabled = false;
 });
@@ -851,10 +1021,6 @@ document.getElementById('applyRevisionBtn').addEventListener('click', async () =
   if (!revision) return;
   if (!currentBody.trim()) {
     statusEl.textContent = 'Generate a draft first, then ask for changes.';
-    return;
-  }
-  if (!getApiKey()) {
-    document.getElementById('gearBtn').click();
     return;
   }
   const btn = document.getElementById('applyRevisionBtn');
@@ -878,7 +1044,7 @@ document.getElementById('applyRevisionBtn').addEventListener('click', async () =
     revisionInput.value = '';
     statusEl.textContent = 'Updated — ask for another change anytime.';
   } catch (e) {
-    statusEl.textContent = 'Could not apply that change — check your API key and try again.';
+    statusEl.textContent = 'Could not apply that change — check your connection and try again.';
   }
   btn.disabled = false;
 });
@@ -1174,30 +1340,30 @@ document.getElementById('newNoteBtn').addEventListener('click', () => {
 });
 
 async function callClaude(prompt) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('NO_API_KEY');
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData && sessionData.session && sessionData.session.access_token;
+  if (!token) {
+    throw new Error('NOT_SIGNED_IN');
   }
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(SUPABASE_URL + '/functions/v1/claude-proxy', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'authorization': 'Bearer ' + token,
     },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    body: JSON.stringify({ prompt }),
   });
+  if (resp.status === 403) {
+    // Approval may have been revoked mid-session — drop back to the auth gate.
+    await refreshGateForCurrentSession();
+    throw new Error('NOT_APPROVED');
+  }
   if (!resp.ok) {
     const errText = await resp.text();
     throw new Error('API_ERROR: ' + resp.status + ' ' + errText);
   }
   const data = await resp.json();
-  return (data.content && data.content[0] && data.content[0].text) || '';
+  return data.text || '';
 }
 
 function extractionPrompt(title, body, transcript) {
@@ -1245,12 +1411,6 @@ async function extractFromCurrentNote() {
     if (statusEl) statusEl.textContent = 'No changes since last extract.';
     return;
   }
-  if (!getApiKey()) {
-    if (statusEl) statusEl.textContent = 'Add your Anthropic API key first (gear icon, top right).';
-    document.getElementById('gearBtn').click();
-    return;
-  }
-
   extractBtn.disabled = true;
   if (statusEl) statusEl.textContent = useTranscript ? 'Reading note + transcript and pulling out tasks…' : 'Reading note and pulling out tasks…';
 
@@ -1275,9 +1435,7 @@ async function extractFromCurrentNote() {
     saveNotesArr(notes);
     if (statusEl) statusEl.textContent = `Extracted ${parsed.length} task(s).`;
   } catch (e) {
-    if (statusEl) statusEl.textContent = e && e.message === 'NO_API_KEY'
-      ? 'Add your Anthropic API key first (gear icon, top right).'
-      : 'Could not auto-parse this note — check your API key, or add the task manually on the Board.';
+    if (statusEl) statusEl.textContent = 'Could not auto-parse this note — check your connection, or add the task manually on the Board.';
   }
   extractBtn.disabled = false;
   renderEditor();
@@ -1293,11 +1451,6 @@ async function generateMinutesForCurrentNote() {
   const hasBody = !!(note.body && note.body.trim());
   const hasTx = !!(note.transcript && note.transcript.trim());
   if (!hasBody && !hasTx) return;
-
-  if (!getApiKey()) {
-    document.getElementById('gearBtn').click();
-    return;
-  }
 
   const btn = document.getElementById('generateMinutesBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
@@ -1324,7 +1477,7 @@ async function generateMinutesForCurrentNote() {
     note.minutesSource = hasTx ? 'transcript' : 'note';
     saveNotesArr(notes);
   } catch (e) {
-    note.minutes = 'Could not generate minutes — check your API key and try again.';
+    note.minutes = 'Could not generate minutes — check your connection and try again.';
     saveNotesArr(notes);
   }
   renderEditor();
@@ -1337,12 +1490,6 @@ async function quickAddTask() {
   if (!text) return;
   const statusEl = document.getElementById('quickAddStatus');
   const btn = document.getElementById('quickAddBtn');
-
-  if (!getApiKey()) {
-    statusEl.textContent = 'Add your Anthropic API key first (gear icon, top right).';
-    document.getElementById('gearBtn').click();
-    return;
-  }
 
   const priorityOverride = document.getElementById('quickAddPriority').value;
   const forcedPriority = priorityOverride !== 'auto' ? priorityOverride : null;
@@ -1748,7 +1895,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // One-time heal: strip legacy <br>/HTML from every stored note AND every stored task
-(function migrateLegacyMarkup() {
+function migrateLegacyMarkup() {
   const markupRe = /<br\s*\/?>|<\/?(p|div)[^>]*>|&nbsp;|<[^>]+>/i;
   const notes = loadNotes();
   let nChanged = false;
@@ -1772,14 +1919,118 @@ document.addEventListener('keydown', (e) => {
     });
   });
   if (tChanged) saveTasks(ts);
-})();
-
-renderSidebar();
-renderEditor();
-renderBoard();
-if (!getApiKey()) {
-  setTimeout(() => document.getElementById('gearBtn').click(), 400);
 }
+
+// ---------- Auth gate ----------
+// Three states, gating the entire app UI (#appShell stays display:none until
+// 'approved'): 'signedOut' -> login/signup form, 'pending' -> waiting screen,
+// 'rejected' -> access-denied screen, 'approved' -> the real app.
+let authMode = 'signin'; // 'signin' | 'signup', toggled by the link under the form
+
+function showAuthView(which) {
+  document.getElementById('authGate').style.display = which === 'approved' ? 'none' : 'flex';
+  document.getElementById('appShell').style.display = which === 'approved' ? 'block' : 'none';
+  document.getElementById('authFormView').style.display = which === 'signedOut' ? 'block' : 'none';
+  document.getElementById('authPendingView').style.display = which === 'pending' ? 'block' : 'none';
+  document.getElementById('authRejectedView').style.display = which === 'rejected' ? 'block' : 'none';
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('authFormTitle').textContent = mode === 'signin' ? 'Sign in' : 'Request access';
+  document.getElementById('authFormSub').textContent = mode === 'signin'
+    ? 'Invite-only. Sign in with your account.'
+    : 'Create an account, then wait for it to be approved.';
+  document.getElementById('authSubmitBtn').textContent = mode === 'signin' ? 'Sign in' : 'Request access';
+  document.getElementById('authToggleText').textContent = mode === 'signin' ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('authToggleLink').textContent = mode === 'signin' ? 'Request access' : 'Sign in';
+  document.getElementById('authStatus').textContent = '';
+}
+
+document.getElementById('authToggleLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+});
+
+document.getElementById('authSubmitBtn').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const statusEl = document.getElementById('authStatus');
+  if (!email || !password) { statusEl.textContent = 'Enter an email and password.'; return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  statusEl.textContent = authMode === 'signin' ? 'Signing in…' : 'Creating your account…';
+  try {
+    const { error } = authMode === 'signin'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    // onAuthStateChange (registered below) picks up the resulting session
+    // and routes to the pending/approved screen — nothing else to do here.
+  } catch (e) {
+    statusEl.textContent = e && e.message ? e.message : 'Something went wrong — try again.';
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('authPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('authSubmitBtn').click();
+});
+
+document.getElementById('pendingSignOutBtn').addEventListener('click', () => supabase.auth.signOut());
+document.getElementById('rejectedSignOutBtn').addEventListener('click', () => supabase.auth.signOut());
+
+let appEntered = false;
+async function enterApp(user) {
+  currentUser = user;
+  document.getElementById('authSubmitBtn').disabled = false;
+  await pullFromCloud();
+  if (!appEntered) {
+    migrateLegacyMarkup();
+    renderSidebar();
+    renderEditor();
+    renderBoard();
+    appEntered = true;
+  }
+  showAuthView('approved');
+}
+
+// Re-checks approval status without a full reload — used when the proxy
+// rejects a request mid-session (e.g. access was revoked while open).
+async function refreshGateForCurrentSession() {
+  const { data } = await supabase.auth.getSession();
+  const session = data && data.session;
+  if (session) await routeSession(session);
+}
+
+async function routeSession(session) {
+  if (!session) {
+    currentUser = null;
+    appEntered = false;
+    setAuthMode('signin');
+    showAuthView('signedOut');
+    return;
+  }
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('status')
+    .eq('id', session.user.id)
+    .single();
+  if (error || !profile) {
+    showAuthView('pending');
+    return;
+  }
+  if (profile.status === 'approved') {
+    await enterApp({ id: session.user.id, email: session.user.email });
+  } else if (profile.status === 'rejected') {
+    showAuthView('rejected');
+  } else {
+    showAuthView('pending');
+  }
+}
+
+supabase.auth.onAuthStateChange((_event, session) => { routeSession(session); });
+supabase.auth.getSession().then(({ data }) => routeSession(data.session));
 </script>
 </body>
 </html>
