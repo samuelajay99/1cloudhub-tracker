@@ -720,8 +720,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Safe to be public: the anon key only works within this project's Row Level
 // Security policies (see supabase/migrations/0001_init.sql) and the real
 // Anthropic key lives only in the claude-proxy Edge Function, never here.
-const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+const SUPABASE_URL = 'https://wzkxivwyorzygjnhuyye.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6a3hpdnd5b3J6eWdqbmh1eXllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwNTE0NzMsImV4cCI6MjEwMDYyNzQ3M30.BwXkVBC1LgD08Wud7QOL-5nbwIOZb7cxuSW_9mXvnMc';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
