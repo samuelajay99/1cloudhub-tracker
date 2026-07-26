@@ -39,8 +39,8 @@ jobs:
       - name: Rename artifacts to stable filenames
         run: |
           mkdir -p out
-          cp dist/*-arm64.dmg "out/1CloudHub-Tracker-mac-arm64.dmg"
-          cp "$(ls dist/*.dmg | grep -v arm64)" "out/1CloudHub-Tracker-mac-x64.dmg"
+          cp dist/*-arm64.dmg "out/Compass-mac-arm64.dmg"
+          cp "$(ls dist/*.dmg | grep -v arm64)" "out/Compass-mac-x64.dmg"
       - name: Upload to the release
         working-directory: app/out
         env:
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          cp dist/*.exe "out/1CloudHub-Tracker-win-x64.exe"
+          cp dist/*.exe "out/Compass-win-x64.exe"
       - name: Upload to the release
         working-directory: app/out
         shell: bash

@@ -7,7 +7,7 @@ function createWindow() {
     height: 780,
     minWidth: 820,
     minHeight: 560,
-    title: '1CloudHub Tracker',
+    title: 'Compass — Orbit',
     backgroundColor: '#F7F9FC',
     webPreferences: {
       contextIsolation: true,

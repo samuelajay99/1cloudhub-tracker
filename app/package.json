@@ -1,7 +1,7 @@
 {
   "name": "1cloudhub-tracker",
   "version": "1.0.0",
-  "description": "1CloudHub Notes & Task Tracker",
+  "description": "Compass — notes, tasks & follow-ups. Part of Orbit by 1CloudHub. (\"name\" above is intentionally unchanged from the old \"Tracker\" branding — it controls Electron's userData path; changing it would orphan everyone's existing local data. See app/CLAUDE.md.)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -13,8 +13,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.1cloudhub.tracker",
-    "productName": "1CloudHub Tracker",
+    "appId": "com.1cloudhub.compass",
+    "productName": "Compass",
     "directories": {
       "output": "dist"
     },

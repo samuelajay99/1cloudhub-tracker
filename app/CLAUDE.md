@@ -1,6 +1,8 @@
-# 1CloudHub Notes & Tracker (Electron app)
+# Compass (Electron app)
 
-A macOS/Windows desktop app (Electron) for a manager's daily workflow: freeform notes, AI-powered task extraction, a task board (list + kanban), meeting-minutes generation, and an email-drafting assistant. Originally built in Claude Cowork as a local-only, bring-your-own-API-key app; now an invite-only, cloud-synced product with a companion website (`../website/`) and Supabase backend (`../supabase/`). See the repo root `README.md` for the full architecture.
+A macOS/Windows desktop app (Electron) for a manager's daily workflow: freeform notes, AI-powered task extraction, a task board (list + kanban), meeting-minutes generation, and an email-drafting assistant. Originally built in Claude Cowork as a local-only, bring-your-own-API-key app called "1CloudHub Tracker"; now **Compass**, one app in the **Orbit** marketplace (`../website/`), invite-only and cloud-synced via Supabase (`../supabase/`). See the repo root `README.md` for the full architecture.
+
+**Renamed from "Tracker" to "Compass"**: this only changed what's user-visible (window title, topbar branding, `productName` in `package.json`, the installer's display name). `package.json`'s `"name": "1cloudhub-tracker"` is deliberately unchanged — see the renaming hazard below. Compass has its own logo mark (inline SVG, violet→coral pastel gradient, `--compass-violet`/`--compass-coral`/`--grad-compass` in `:root`) used only for branding — the interior UI intentionally keeps its original cyan/orange 1CloudHub-derived palette rather than a full re-theme.
 
 ## Architecture (deliberately simple — keep it that way unless asked)
 
@@ -42,7 +44,7 @@ A macOS/Windows desktop app (Electron) for a manager's daily workflow: freeform 
 
 - **Notes tab**: sidebar list + editor; autosave (800ms debounce); Extract Tasks button (skips if content hash unchanged); collapsible transcript section (attach .docx via JSZip CDN + DOMParser, or .txt, or paste); Meeting Minutes pane (generates from note alone, or note+transcript when attached; only on click).
 - **Board tab**: stats cards; natural-language quick-add (with priority override select); search / person / status / priority filters; Overdue & Today chips; List view (grouped by source note, collapsible, expanded state persisted) and Kanban view (drag-and-drop between status columns); soft-delete with Trash + undo toast; task detail modal (full edit).
-- **Email tab**: context + instructions → generate subject/body; iterative "Apply Change" revisions; copy to clipboard; autosaved workspace.
+- **Email tab**: numbered 2-step layout (Add context / Review & send); tone preset chips (Formal/Friendly/Apologetic/Urgent/Brief — click toggles a canned line in/out of the instructions textarea, state restored on reload by checking which preset strings are present in saved `instructions`); context + instructions → generate subject/body; iterative "Apply Change" revisions; "New Email" clears the workspace; separate "Copy Subject + Body" / "Copy Body Only" with inline button-text confirmation (`flashCopied()`); generate/revise buttons show a spinner via `.is-loading` (`setBtnLoading()`) instead of just disabling; autosaved workspace.
 - **Global**: ⌘K quick-add, ⌘F search, ⌘N new note, Esc closes modals; confetti burst on task completion.
 - **Theme**: tokens in `:root` derived from the actual logo palette — cyan `#1899C2`/`#4FC3F0`, orange `#F07814`, green `#6FB43C`, charcoal `#333B49`. Poppins + Space Grotesk (Google Fonts CDN); JSZip and `@supabase/supabase-js` also CDN (`esm.sh`) — the only network deps besides the `claude-proxy` Edge Function.
 
