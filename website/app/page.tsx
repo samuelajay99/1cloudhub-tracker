@@ -314,6 +314,9 @@ export default function HomePage() {
                   <MonitorDown size={18} strokeWidth={1.75} />
                 </a>
               </div>
+              <a href="/install" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--blue-600)' }}>
+                Need help installing? Step-by-step guide →
+              </a>
             </div>
 
             <div className="ch-empty-card">
