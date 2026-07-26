@@ -1,16 +1,30 @@
 name: Build app installers
 
 # Push a tag like "v1.0.1" to cut a new release: this builds unsigned Mac
-# (arm64 + x64) and Windows installers and uploads them to the "releases"
-# bucket in Supabase Storage under stable filenames, so the website's
-# download links always point at the latest build.
+# (arm64 + x64) and Windows installers and attaches them to a GitHub
+# Release under stable filenames. The website always links to
+# .../releases/latest/download/<filename>, which GitHub resolves to
+# whatever the newest release's matching asset is.
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes
+
   build-mac:
+    needs: create-release
     runs-on: macos-latest
     defaults:
       run:
@@ -27,21 +41,14 @@ jobs:
           mkdir -p out
           cp dist/*-arm64.dmg "out/1CloudHub-Tracker-mac-arm64.dmg"
           cp "$(ls dist/*.dmg | grep -v arm64)" "out/1CloudHub-Tracker-mac-x64.dmg"
-      - name: Upload to Supabase Storage
+      - name: Upload to the release
         working-directory: app/out
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          for f in *; do
-            curl -sf -X POST "$SUPABASE_URL/storage/v1/object/releases/$f" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "x-upsert: true" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary "@$f"
-          done
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" * --clobber
 
   build-win:
+    needs: create-release
     runs-on: windows-latest
     defaults:
       run:
@@ -58,17 +65,9 @@ jobs:
         run: |
           mkdir -p out
           cp dist/*.exe "out/1CloudHub-Tracker-win-x64.exe"
-      - name: Upload to Supabase Storage
+      - name: Upload to the release
         working-directory: app/out
         shell: bash
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          for f in *; do
-            curl -sf -X POST "$SUPABASE_URL/storage/v1/object/releases/$f" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "x-upsert: true" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary "@$f"
-          done
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" * --clobber

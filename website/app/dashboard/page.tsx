@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
-const RELEASES_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}/storage/v1/object/public/releases`;
+// GitHub's "latest" alias always resolves to the newest release's asset
+// with this exact filename — no need to know the version tag here.
+const RELEASES_BASE = 'https://github.com/samuelajay99/1cloudhub-tracker/releases/latest/download';
 
 export default function DashboardPage() {
   const router = useRouter();
