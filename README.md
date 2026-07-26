@@ -12,6 +12,12 @@ supabase/     Auth, database, and the Edge Function holding the Anthropic key
 .github/      CI that builds installers and cuts a GitHub Release on every version tag
 ```
 
+Note: a local `design-system/` folder (the org's internal 1CloudHub design
+system — tokens, component references, voice rules) informed the website's
+visual language but is deliberately **not** committed — this repo is
+public, and the guide references internal product/pricing information. It's
+gitignored; ask for it again if a future session needs to reference it.
+
 ## How it fits together
 
 ```
@@ -41,6 +47,24 @@ accounts with `is_admin = true`. Feedback throughout (signup sent, sign-in
 errors, admin approve/reject) goes through a shared toast component
 (`website/components/Toast.tsx` + `useToast.ts`) rather than silent state
 changes.
+
+**Visual design**: the website follows the org's 1CloudHub design system —
+navy spine `#142947`, one brand blue `#0568AD`, orange `#F7941D` as a point
+accent only, sky `#4EC9EE` as the digital-only accent, Poppins + a Courier
+New kicker, navy-tinted shadows, 14px card radius. That system's own
+`tokens/*.css` files weren't included in the export we received, so
+`website/app/globals.css` reconstructs them as CSS custom properties
+(`--navy-700`, `--blue-600`, `--gradient-hero`, etc.) directly from the
+guide's documented hex values and its component reference implementations —
+every value traces back to something in the guide, nothing invented. Real
+brand assets (logo, white knockout, gradient footer bar) live in
+`website/public/`. Icons are `lucide-react`, per the guide's own icon
+substitution rule (no icon set was supplied; Lucide was the guide's choice).
+**Compass's interior UI (Notes/Board/Email tabs) deliberately does not use
+this system** — it keeps its own established pastel palette from before the
+design system existed. Only Compass's auth gate (login/signup/pending
+screens) was restyled to match, as the Orbit-branded shell around the app —
+see `app/CLAUDE.md`.
 
 ## Setup (do this once)
 

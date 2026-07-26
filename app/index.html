@@ -528,35 +528,60 @@
 
   .badge.overdue { background: #FDEEEC; color: #C0392B; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 7px; margin-left: auto; flex-shrink: 0; }
 
-  /* ---------- Auth gate ---------- */
+  /* ---------- Auth gate ----------
+     Uses the 1CloudHub design system directly (navy/blue/orange/sky, Poppins
+     + Courier New kicker) rather than Compass's own interior palette above —
+     this is the Orbit-branded shell around the app, deliberately distinct
+     from Compass's own established in-app look. Scoped custom properties
+     (--ds-*) so nothing here touches the interior CSS variables. */
   .auth-gate {
+    --ds-navy: #142947; --ds-navy-deep: #0F2038; --ds-navy-mid: #1B3A63;
+    --ds-blue: #0568AD; --ds-blue-dark: #045089; --ds-orange: #F7941D; --ds-sky: #4EC9EE;
+    --ds-ink: #231F20; --ds-muted: #6B6F76; --ds-hairline: #D9E4F0;
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    -webkit-app-region: drag;
+    -webkit-app-region: drag; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, var(--ds-navy-deep) 0%, var(--ds-navy) 55%, var(--ds-navy-mid) 100%);
+  }
+  .auth-gate::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(700px 460px at 88% -6%, rgba(78, 201, 238, 0.22), transparent 62%);
   }
   .auth-card {
-    width: 340px; background: var(--card-solid); border-radius: var(--r-xl);
-    box-shadow: var(--shadow-2); padding: 30px 26px; -webkit-app-region: no-drag;
+    position: relative; width: 360px; background: #fff; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(20, 41, 71, 0.32); padding: 32px 28px; -webkit-app-region: no-drag;
   }
   .auth-brand {
-    display: flex; align-items: center; gap: 8px;
-    color: var(--navy); font-size: 15px; font-weight: 700; letter-spacing: 2px;
-    text-transform: uppercase; font-family: 'Space Grotesk', 'Courier New', monospace;
-    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--ds-navy); font-size: 14px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; font-family: 'Courier New', Courier, monospace;
+    margin-bottom: 20px;
   }
   .auth-brand .brand-text { display: flex; flex-direction: column; }
-  .auth-brand small { font-size: 9.5px; letter-spacing: 0.5px; color: var(--muted); text-transform: none; font-weight: 500; }
+  .auth-brand small { font-family: 'Poppins', sans-serif; font-size: 9.5px; letter-spacing: 0.4px; color: var(--ds-muted); text-transform: none; font-weight: 500; margin-top: 1px; }
   .compass-icon { flex-shrink: 0; }
-  .auth-card h2 { margin: 0 0 6px; font-size: 18px; color: var(--ink); }
-  .auth-sub { font-size: 12px; color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
+  .auth-card h2 { margin: 0 0 6px; font-size: 19px; color: var(--ds-navy); font-weight: 600; }
+  .auth-sub { font-size: 12.5px; color: var(--ds-muted); margin: 0 0 18px; line-height: 1.6; }
   .auth-card input[type=email], .auth-card input[type=password] {
-    width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 13px;
-    font-size: 13px; font-family: inherit; background: rgba(255,255,255,0.9);
-    margin-bottom: 10px;
+    width: 100%; border: 1px solid var(--ds-hairline); border-radius: 6px; padding: 11px 13px;
+    font-size: 13px; font-family: 'Poppins', sans-serif; background: #fff; color: var(--ds-ink);
+    margin-bottom: 10px; transition: border-color 0.16s, box-shadow 0.16s;
   }
-  .auth-card input:focus { outline: none; border-color: rgba(5, 104, 173, 0.5); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.13); }
-  .auth-toggle { font-size: 11.5px; color: var(--muted); text-align: center; margin: 14px 0 0; }
-  .auth-toggle a { color: var(--blue); text-decoration: none; font-weight: 600; margin-left: 4px; }
+  .auth-card input:focus { outline: none; border-color: var(--ds-blue); box-shadow: 0 0 0 3px rgba(5, 104, 173, 0.16); }
+  .auth-card .btn-primary {
+    background: var(--ds-blue); border: none; border-radius: 6px; color: #fff;
+    font-family: 'Poppins', sans-serif; font-weight: 600; box-shadow: 0 1px 3px rgba(20,41,71,.12);
+    transition: background 0.16s, transform 0.16s;
+  }
+  .auth-card .btn-primary:hover { background: var(--ds-blue-dark); transform: translateY(-1px); }
+  .auth-card .btn-secondary {
+    background: #fff; border: 1px solid var(--ds-hairline); border-radius: 6px; color: var(--ds-navy);
+    font-family: 'Poppins', sans-serif; font-weight: 600; transition: background 0.16s, border-color 0.16s;
+  }
+  .auth-card .btn-secondary:hover { background: #E8F1FA; border-color: #B7D8F0; }
+  .auth-toggle { font-size: 11.5px; color: var(--ds-muted); text-align: center; margin: 16px 0 0; }
+  .auth-toggle a { color: var(--ds-blue); text-decoration: none; font-weight: 600; margin-left: 4px; }
   .auth-toggle a:hover { text-decoration: underline; }
+  #authStatus.status-line { color: var(--ds-muted); }
 
 </style>
 </head>
@@ -564,16 +589,8 @@
   <div id="authGate" class="auth-gate">
     <div class="auth-card">
       <div class="auth-brand">
-        <svg class="compass-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9.5" stroke="url(#compassGradAuth)" stroke-width="1.6"/>
-          <path d="M15.2 8.8L10.6 10.6L8.8 15.2L13.4 13.4L15.2 8.8Z" fill="url(#compassGradAuth)"/>
-          <defs>
-            <linearGradient id="compassGradAuth" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#B39DDB"/><stop offset="1" stop-color="#FFAB91"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span class="brand-text">COMPASS<small>Notes &amp; Follow-ups</small></span>
+        <img src="assets/logo.png" alt="1CloudHub" style="height:20px;width:auto;display:block;">
+        <span class="brand-text">COMPASS<small>Orbit by 1CloudHub</small></span>
       </div>
       <div id="authFormView">
         <h2 id="authFormTitle">Sign in</h2>

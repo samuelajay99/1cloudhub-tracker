@@ -6,3 +6,6 @@ dist/
 .next/
 .env.local
 .env*.local
+# Internal 1CloudHub design system export — references internal product/
+# pricing info; repo is public, so this stays local-only. See README.md.
+design-system/

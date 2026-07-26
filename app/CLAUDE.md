@@ -8,8 +8,24 @@ A macOS/Windows desktop app (Electron) for a manager's daily workflow: freeform 
 
 - **Single-page, single-file app**: ALL HTML, CSS, and JS live in `index.html` (~1900 lines). No framework, no bundler. The main script is `<script type="module">` so it can `import` the Supabase JS client straight from a CDN (`esm.sh`) — same "no build step" philosophy as before, just one more CDN import alongside JSZip and Google Fonts.
 - `main.js` — minimal Electron main process (one BrowserWindow, loads index.html).
-- `assets/logo.png` — 1CloudHub logo (also embedded as base64 inside index.html for the topbar).
+- `assets/logo.png` — the real 1CloudHub logo (replacing an old low-res copy), used by the auth-gate's `<img>` tag. The interior topbar uses a separate, older base64-embedded copy inline in index.html — untouched, not the same file.
 - **Renaming hazard**: the `name` in `package.json` / app name determines Electron's userData path. Renaming the app orphans all user data. This was preserved as `1cloudhub-tracker` through the cloud-sync migration for exactly this reason.
+
+## Auth gate uses the 1CloudHub design system; the interior doesn't
+
+The login/signup/pending/rejected screens (`#authGate`) were restyled to
+follow the org's 1CloudHub design system directly (see repo root
+`README.md` for where those values come from) — navy gradient
+background (`linear-gradient(135deg, #0F2038, #142947, #1B3A63)`) with a
+cyan glow, white card, real logo, brand blue buttons. These values are
+scoped to `.auth-gate` via `--ds-*` custom properties defined on that class
+alone, so they can't leak into or collide with the interior's own
+`--navy`/`--blue`/`--orange` variables. The interior (topbar, Notes/Board/
+Email tabs) intentionally still uses Compass's own established pastel
+violet→coral mark and cyan/orange palette — a deliberate scope boundary,
+not an oversight, to avoid re-theming ~1900 lines of already-working UI in
+one pass. If asked to bring the design system into the interior too, that's
+a real follow-up, not something this change already did.
 
 ## Auth + cloud sync (added on top of the original local-only design)
 

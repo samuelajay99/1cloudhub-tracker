@@ -1,8 +1,17 @@
-export function OrbitBrand({ center = false }: { center?: boolean }) {
+import { LucideIcon } from 'lucide-react';
+
+/** theme 'dark' = colored logo for light backgrounds. 'light' = white knockout for navy backgrounds. */
+export function Logo({ theme = 'dark', height = 20 }: { theme?: 'dark' | 'light'; height?: number }) {
+  const src = theme === 'light' ? '/1cloudhub-logo-white.png' : '/1cloudhub-logo.png';
+  return <img src={src} alt="1CloudHub" height={height} style={{ width: 'auto' }} />;
+}
+
+export function HeaderBrand() {
   return (
-    <div className="brand" style={center ? { justifyContent: 'center' } : undefined}>
-      <img src="/1cloudhub-logo.png" alt="1CloudHub" className="brand-mark" height={20} />
-      <span>
+    <div className="ch-header-brand">
+      <Logo theme="light" height={20} />
+      <span className="divider" />
+      <span className="ch-header-product">
         ORBIT
         <small>AI apps for everyday life</small>
       </span>
@@ -10,17 +19,38 @@ export function OrbitBrand({ center = false }: { center?: boolean }) {
   );
 }
 
-export function CompassIcon({ size = 22, gradientId }: { size?: number; gradientId: string }) {
+export function OrbitBrand({ center = false, theme = 'dark' }: { center?: boolean; theme?: 'dark' | 'light' }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="9.5" stroke={`url(#${gradientId})`} strokeWidth="1.6" />
-      <path d="M15.2 8.8L10.6 10.6L8.8 15.2L13.4 13.4L15.2 8.8Z" fill={`url(#${gradientId})`} />
-      <defs>
-        <linearGradient id={gradientId} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#B39DDB" />
-          <stop offset="1" stopColor="#FFAB91" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <div
+      className="ch-header-brand"
+      style={{ marginBottom: 20, justifyContent: center ? 'center' : 'flex-start' }}
+    >
+      <Logo theme={theme} height={20} />
+      <span className="divider" style={{ background: theme === 'light' ? 'rgba(255,255,255,.18)' : 'var(--border-default)' }} />
+      <span className="ch-header-product" style={{ color: theme === 'light' ? '#fff' : 'var(--navy-700)' }}>
+        ORBIT
+        <small style={{ color: theme === 'light' ? 'rgba(255,255,255,.6)' : 'var(--text-secondary)' }}>AI apps for everyday life</small>
+      </span>
+    </div>
+  );
+}
+
+export function FooterBrand() {
+  return <Logo theme="light" height={18} />;
+}
+
+export function IconTile({
+  icon: Icon,
+  size = 22,
+  tone = 'default',
+}: {
+  icon: LucideIcon;
+  size?: number;
+  tone?: 'default' | 'accent' | 'sky' | 'navy' | 'square';
+}) {
+  return (
+    <div className={`ch-icon-tile ${tone === 'default' ? '' : tone}`} style={{ width: size + 30, height: size + 30 }}>
+      <Icon size={size} strokeWidth={1.75} />
+    </div>
   );
 }
