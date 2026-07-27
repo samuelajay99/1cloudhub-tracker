@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { OrbitBrand } from '../Brand';
 
-type GateState = 'loading' | 'signedOut' | 'notApproved' | 'noRequest' | 'requestPending' | 'requestRejected' | 'ready';
+type GateState = 'loading' | 'signedOut' | 'notApproved' | 'noRequest' | 'requestPending' | 'requestRejected' | 'ready' | 'dbError';
 
 export default function BeaconGate({ children }: { children: (ctx: { userId: string }) => ReactNode }) {
   const router = useRouter();
   const [state, setState] = useState<GateState>('loading');
   const [userId, setUserId] = useState('');
   const [requesting, setRequesting] = useState(false);
+  const [errorDetail, setErrorDetail] = useState('');
 
   async function evaluate() {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -23,19 +24,36 @@ export default function BeaconGate({ children }: { children: (ctx: { userId: str
     }
     setUserId(session.user.id);
 
-    const { data: profile } = await supabase.from('profiles').select('status').eq('id', session.user.id).single();
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', session.user.id)
+      .single();
+    if (profileErr) {
+      setErrorDetail(profileErr.message);
+      setState('dbError');
+      return;
+    }
     if (!profile || profile.status !== 'approved') {
       setState('notApproved');
       return;
     }
 
-    const { data: access } = await supabase
+    const { data: access, error: accessErr } = await supabase
       .from('app_access')
       .select('status')
       .eq('user_id', session.user.id)
       .eq('app_id', 'beacon')
       .maybeSingle();
 
+    if (accessErr) {
+      // Most common cause: supabase/migrations/0004_beacon.sql hasn't been
+      // run yet, so the app_access table doesn't exist — surface that
+      // instead of silently looking like an unmet access request forever.
+      setErrorDetail(accessErr.message);
+      setState('dbError');
+      return;
+    }
     if (!access) {
       setState('noRequest');
       return;
@@ -55,10 +73,44 @@ export default function BeaconGate({ children }: { children: (ctx: { userId: str
     setRequesting(true);
     const { error } = await supabase.from('app_access').insert({ user_id: userId, app_id: 'beacon', status: 'pending' });
     setRequesting(false);
-    if (!error) setState('requestPending');
+    if (error) {
+      setErrorDetail(error.message);
+      setState('dbError');
+      return;
+    }
+    setState('requestPending');
   }
 
   if (state === 'loading' || state === 'signedOut') return null;
+
+  if (state === 'dbError') {
+    return (
+      <GateScreen title="Couldn't check Beacon access" body="Something went wrong talking to the database.">
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--red-600)',
+            background: 'var(--red-100)',
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-sm)',
+            textAlign: 'left',
+            wordBreak: 'break-word',
+            marginBottom: 16,
+          }}
+        >
+          {errorDetail}
+        </p>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: 16 }}>
+          If this mentions <code>app_access</code> not existing, the Beacon database migration
+          (<code>supabase/migrations/0004_beacon.sql</code>) hasn&apos;t been run on this Supabase project yet.
+        </p>
+        <button className="ch-btn ch-btn-secondary full" onClick={evaluate}>
+          Try again
+        </button>
+      </GateScreen>
+    );
+  }
 
   if (state === 'notApproved') {
     return (
