@@ -36,6 +36,8 @@ export interface BeaconEvent {
   current_question_started_at: string | null;
   leaderboard_visible: boolean;
   leaderboard_scope: LeaderboardScope | null;
+  leaderboard_shown_at: string | null;
+  podium_shown_at: string | null;
   raffle_enabled: boolean;
   raffle_winner_count: number | null;
   raffle_eligibility: RaffleEligibility | null;
@@ -195,4 +197,25 @@ export function computeSpeedPoints(basePoints: number, elapsedMs: number, timeLi
   const clampedElapsed = Math.max(0, Math.min(elapsedMs, timeLimitSeconds * 1000));
   const speedFactor = 1 - (clampedElapsed / (timeLimitSeconds * 1000)) * 0.5;
   return Math.round(basePoints * speedFactor);
+}
+
+export type ClosingView = 'leaderboard' | 'podium' | 'raffle' | null;
+
+// Broadcasts only reach tabs already subscribed at the moment they fire —
+// a presenter tab opened (or reloaded) afterward has nothing to replay.
+// This decides which of the "closing ceremony" steps (leaderboard, podium,
+// raffle) was shown most recently, so a page load can reconstruct that
+// same view from persisted state instead of only ever working live.
+export function latestClosingView(input: {
+  leaderboard_shown_at: string | null;
+  podium_shown_at: string | null;
+  latest_raffle_drawn_at: string | null;
+}): ClosingView {
+  const candidates: { at: number; view: ClosingView }[] = [];
+  if (input.leaderboard_shown_at) candidates.push({ at: new Date(input.leaderboard_shown_at).getTime(), view: 'leaderboard' });
+  if (input.podium_shown_at) candidates.push({ at: new Date(input.podium_shown_at).getTime(), view: 'podium' });
+  if (input.latest_raffle_drawn_at) candidates.push({ at: new Date(input.latest_raffle_drawn_at).getTime(), view: 'raffle' });
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.at - a.at);
+  return candidates[0].view;
 }

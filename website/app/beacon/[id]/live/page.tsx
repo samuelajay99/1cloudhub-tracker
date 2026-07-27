@@ -23,6 +23,7 @@ import {
   Tally,
   leaderboardSort,
   computeTallies,
+  latestClosingView,
 } from '../../../../lib/beacon';
 import { ExternalLink, ArrowLeft, Users, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 
@@ -43,6 +44,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
   const [podiumRows, setPodiumRows] = useState<LeaderboardRow[] | null>(null);
   const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[] | null>(null);
+  const [raffleInstant, setRaffleInstant] = useState(false);
   const [rafflePool, setRafflePool] = useState<string[]>([]);
 
   const currentQuestion = event?.current_question_index != null ? questions[event.current_question_index] : null;
@@ -85,6 +87,40 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
       }
     }
 
+    if (eventRow.status === 'closed' || eventRow.status === 'archived') {
+      const { data: winners } = await supabase
+        .from('beacon_raffle_winners')
+        .select('participant_id, drawn_at')
+        .eq('event_id', eventId)
+        .order('drawn_at', { ascending: false });
+      const closingView = latestClosingView({
+        leaderboard_shown_at: eventRow.leaderboard_shown_at,
+        podium_shown_at: eventRow.podium_shown_at,
+        latest_raffle_drawn_at: winners && winners.length > 0 ? winners[0].drawn_at : null,
+      });
+
+      if (closingView === 'raffle' && winners) {
+        const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
+        const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
+        setRafflePool((participants || []).map((p) => p.name));
+        setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
+        setRaffleInstant(true);
+      } else if (closingView === 'podium' || closingView === 'leaderboard') {
+        const { data: participants } = await supabase
+          .from('beacon_participants')
+          .select('id, name, score, completed_at')
+          .eq('event_id', eventId);
+        const sorted = leaderboardSort(participants || []);
+        if (closingView === 'podium') {
+          setPodiumRows(sorted.slice(0, 3).map((p, i) => ({ participant_id: p.id, name: p.name, score: p.score, rank: i + 1 })));
+        } else {
+          const scope = eventRow.leaderboard_scope || 'full';
+          const limit = scope === 'top5' ? 5 : scope === 'top10' ? 10 : sorted.length;
+          setLeaderboardRows(sorted.slice(0, limit).map((p, i) => ({ participant_id: p.id, name: p.name, score: p.score, rank: i + 1 })));
+        }
+      }
+    }
+
     setLoaded(true);
   }, [eventId, showToast]);
 
@@ -109,6 +145,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
           setRafflePool((participants || []).map((p) => p.name));
         }
         setRaffleWinners(msg.payload.winners);
+        setRaffleInstant(false);
       } else if (msg.type === 'question_started' || msg.type === 'results_revealed' || msg.type === 'event_closed') {
         // Another host tab (or this one, echoed back) changed state — reload from source of truth.
         load();
@@ -221,7 +258,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
       score: p.score,
       rank: i + 1,
     }));
-    await supabase.from('beacon_events').update({ leaderboard_scope: scope }).eq('id', eventId);
+    await supabase.from('beacon_events').update({ leaderboard_scope: scope, leaderboard_shown_at: new Date().toISOString() }).eq('id', eventId);
     setLeaderboardRows(rows);
     await send({ type: 'leaderboard_shown', payload: { scope, rows } });
   }
@@ -238,6 +275,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
       score: p.score,
       rank: i + 1,
     }));
+    await supabase.from('beacon_events').update({ podium_shown_at: new Date().toISOString() }).eq('id', eventId);
     setPodiumRows(rows);
     await send({ type: 'podium_shown', payload: { rows } });
   }
@@ -274,6 +312,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
 
     const winnerPayload = winners.map((w) => ({ participant_id: w.id, name: w.name }));
     setRaffleWinners(winnerPayload);
+    setRaffleInstant(false);
     await send({ type: 'raffle_drawn', payload: { winners: winnerPayload } });
   }
 
@@ -440,7 +479,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
                 </button>
                 {raffleWinners && (
                   <div style={{ background: 'var(--gradient-hero)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
-                    <RaffleWheel pool={rafflePool} winners={raffleWinners} />
+                    <RaffleWheel pool={rafflePool} winners={raffleWinners} instant={raffleInstant} />
                   </div>
                 )}
               </div>

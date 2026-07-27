@@ -18,7 +18,34 @@ interface WheelSegment {
   name: string;
 }
 
-export default function RaffleWheel({ pool, winners }: { pool: string[]; winners: { participant_id: string; name: string }[] }) {
+export default function RaffleWheel({
+  pool,
+  winners,
+  instant = false,
+}: {
+  pool: string[];
+  winners: { participant_id: string; name: string }[];
+  // Skips the spin — used when reconstructing an already-drawn raffle on
+  // page load (a fresh presenter tab, or a host reload) rather than
+  // reacting to the live "raffle_drawn" broadcast, where replaying the
+  // multi-second draw again would be a lie about what just happened.
+  instant?: boolean;
+}) {
+  if (instant) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '20px 0' }}>
+        {winners.map((w) => (
+          <div key={w.participant_id} style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: '#fff' }}>
+            🎉 {w.name}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return <SpinningRaffleWheel pool={pool} winners={winners} />;
+}
+
+function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { participant_id: string; name: string }[] }) {
   const [winnerIndex, setWinnerIndex] = useState(0);
   const [segments, setSegments] = useState<WheelSegment[]>([]);
   const [rotation, setRotation] = useState(0);
