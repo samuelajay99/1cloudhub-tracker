@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/useToast';
 import Toast from '../components/Toast';
-import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark, BeaconMark } from '../components/Brand';
+import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark, BeaconMark, HorizonMark } from '../components/Brand';
 import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown } from 'lucide-react';
 
 type Stage = 'loading' | 'signedOut' | 'pending' | 'rejected' | 'approved';
@@ -328,6 +328,19 @@ export default function HomePage() {
               </p>
               <a href="/beacon" className="ch-btn ch-btn-primary full" style={{ marginTop: 14 }}>
                 Open Beacon
+              </a>
+            </div>
+
+            <div className="ch-card pad-lg accent-top">
+              <HorizonMark size={52} />
+              <h3>Horizon</h3>
+              <p className="desc">
+                A personalised daily intelligence brief — the handful of things worth knowing
+                today, prioritised for your role and industry, with a reason each one matters to
+                you.
+              </p>
+              <a href="/horizon" className="ch-btn ch-btn-primary full" style={{ marginTop: 14 }}>
+                Open Horizon
               </a>
             </div>
 
