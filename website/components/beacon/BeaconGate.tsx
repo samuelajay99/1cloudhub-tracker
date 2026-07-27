@@ -82,7 +82,20 @@ export default function BeaconGate({ children }: { children: (ctx: { userId: str
     setState('requestPending');
   }
 
-  if (state === 'loading' || state === 'signedOut') return null;
+  if (state === 'signedOut') return null;
+
+  if (state === 'loading') {
+    return (
+      <div className="ch-status-page">
+        <div className="ch-shell-narrow" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
+            <BeaconBrand center />
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Loading…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (state === 'dbError') {
     return (

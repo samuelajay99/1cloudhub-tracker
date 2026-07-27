@@ -7,6 +7,7 @@ import QRCode from '../../../../components/beacon/QRCode';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import RaffleWheel from '../../../../components/beacon/RaffleWheel';
+import OptionShape, { optionStyle } from '../../../../components/beacon/OptionShape';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import { BeaconEvent, BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
 import { ArrowLeft } from 'lucide-react';
@@ -201,7 +202,29 @@ function PresenterView({ eventId }: { eventId: string }) {
           <div style={{ fontSize: 'var(--text-md)', color: 'var(--sky-400)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>
             QUESTION {questionIndex + 1} OF {totalQuestions}
           </div>
-          <h1 style={{ fontSize: 'var(--text-4xl)', color: 'var(--white)', maxWidth: 900 }}>{questionTitle}</h1>
+          <h1 style={{ fontSize: 'var(--text-3xl)', color: 'var(--white)', maxWidth: 900, marginBottom: 32 }}>{questionTitle}</h1>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, width: '100%', maxWidth: 700 }}>
+            {questionOptions.map((opt, i) => (
+              <div
+                key={opt.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '18px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  background: optionStyle(i).color,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 'var(--text-md)',
+                  textAlign: 'left',
+                }}
+              >
+                <OptionShape index={i} size={22} />
+                {opt.label}
+              </div>
+            ))}
+          </div>
           <p style={{ fontSize: 'var(--text-xl)', color: 'rgba(255,255,255,.8)', marginTop: 40 }}>
             {completedCount} of {registeredCount} answered
           </p>

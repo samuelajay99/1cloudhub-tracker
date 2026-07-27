@@ -110,8 +110,6 @@ function EventList({ userId }: { userId: string }) {
     await loadEvents();
   }
 
-  if (!loaded) return null;
-
   return (
     <div className="ch-page">
       <Toast toast={toast} />
@@ -152,7 +150,14 @@ function EventList({ userId }: { userId: string }) {
               </tr>
             </thead>
             <tbody>
-              {events.map((e) => (
+              {!loaded && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 32 }}>
+                    Loading…
+                  </td>
+                </tr>
+              )}
+              {loaded && events.map((e) => (
                 <tr key={e.id}>
                   <td>
                     <a href={eventLink(e)} style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none' }}>
@@ -179,7 +184,7 @@ function EventList({ userId }: { userId: string }) {
                   </td>
                 </tr>
               ))}
-              {events.length === 0 && (
+              {loaded && events.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 32 }}>
                     No events yet — create your first one above.

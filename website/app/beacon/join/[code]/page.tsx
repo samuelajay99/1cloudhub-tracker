@@ -5,6 +5,7 @@ import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
 import { BeaconBrand } from '../../../../components/Brand';
 import BarChart from '../../../../components/beacon/BarChart';
+import OptionShape, { optionStyle } from '../../../../components/beacon/OptionShape';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import { BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
@@ -239,16 +240,34 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
               </div>
               <h1 style={titleStyle}>{question.title}</h1>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
-                {question.options.map((opt) => (
-                  <button
-                    key={opt.id}
-                    className={`ch-btn full ${selectedOption === opt.id ? 'ch-btn-primary' : 'ch-btn-secondary'}`}
-                    onClick={() => setSelectedOption(opt.id)}
-                    style={{ justifyContent: 'flex-start', textAlign: 'left' }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                {question.options.map((opt, i) => {
+                  const selected = selectedOption === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => setSelectedOption(opt.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '16px 18px',
+                        borderRadius: 'var(--radius-md)',
+                        border: selected ? '3px solid var(--navy-700)' : '3px solid transparent',
+                        background: optionStyle(i).color,
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: 'var(--text-md)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        boxShadow: selected ? '0 4px 14px rgba(0,0,0,.25)' : 'var(--shadow-sm)',
+                        transition: 'var(--transition-base)',
+                      }}
+                    >
+                      <OptionShape index={i} size={20} />
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 className="ch-btn ch-btn-accent full"

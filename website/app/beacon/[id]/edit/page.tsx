@@ -245,18 +245,28 @@ function Editor({ eventId }: { eventId: string }) {
     setPublishing(false);
   }
 
-  if (!loaded) return null;
-  if (!event) {
+  if (!loaded || !event) {
     return (
       <div className="ch-page">
         <header className="ch-header">
           <BeaconHeaderBrand />
+          <div className="ch-header-right">
+            <a href="/beacon" className="ch-btn ch-btn-inverse">
+              <ArrowLeft size={16} strokeWidth={2} /> My events
+            </a>
+          </div>
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
-          <p>Event not found, or you don&apos;t have access to it.</p>
-          <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
-            <ArrowLeft size={16} strokeWidth={2} /> Back to my events
-          </a>
+          {loaded ? (
+            <>
+              <p>Event not found, or you don&apos;t have access to it.</p>
+              <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
+                <ArrowLeft size={16} strokeWidth={2} /> Back to my events
+              </a>
+            </>
+          ) : (
+            <p style={{ color: 'var(--text-secondary)' }}>Loading…</p>
+          )}
         </div>
       </div>
     );

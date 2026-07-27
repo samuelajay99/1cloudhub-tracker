@@ -10,6 +10,7 @@ import QRCode from '../../../../components/beacon/QRCode';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import StatCard from '../../../../components/beacon/StatCard';
+import RaffleWheel from '../../../../components/beacon/RaffleWheel';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import {
   BeaconEvent,
@@ -38,6 +39,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
   const [completedCount, setCompletedCount] = useState(0);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
   const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[] | null>(null);
+  const [rafflePool, setRafflePool] = useState<string[]>([]);
 
   const currentQuestion = event?.current_question_index != null ? questions[event.current_question_index] : null;
   const resultsRevealed = !!currentQuestion?.revealed_at;
@@ -86,21 +88,28 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     load();
   }, [load]);
 
-  const onMessage = useCallback((msg: BeaconMessage) => {
-    if (msg.type === 'tally_update') {
-      setTallies(msg.payload.tallies);
-      setTotalResponses(msg.payload.total_responses);
-      setRegisteredCount(msg.payload.registered_count);
-      setCompletedCount(msg.payload.completed_count);
-    } else if (msg.type === 'leaderboard_shown') {
-      setLeaderboardRows(msg.payload.rows);
-    } else if (msg.type === 'raffle_drawn') {
-      setRaffleWinners(msg.payload.winners);
-    } else if (msg.type === 'question_started' || msg.type === 'results_revealed' || msg.type === 'event_closed') {
-      // Another host tab (or this one, echoed back) changed state — reload from source of truth.
-      load();
-    }
-  }, [load]);
+  const onMessage = useCallback(
+    async (msg: BeaconMessage) => {
+      if (msg.type === 'tally_update') {
+        setTallies(msg.payload.tallies);
+        setTotalResponses(msg.payload.total_responses);
+        setRegisteredCount(msg.payload.registered_count);
+        setCompletedCount(msg.payload.completed_count);
+      } else if (msg.type === 'leaderboard_shown') {
+        setLeaderboardRows(msg.payload.rows);
+      } else if (msg.type === 'raffle_drawn') {
+        if (rafflePool.length === 0) {
+          const { data: participants } = await supabase.from('beacon_participants').select('name').eq('event_id', eventId);
+          setRafflePool((participants || []).map((p) => p.name));
+        }
+        setRaffleWinners(msg.payload.winners);
+      } else if (msg.type === 'question_started' || msg.type === 'results_revealed' || msg.type === 'event_closed') {
+        // Another host tab (or this one, echoed back) changed state — reload from source of truth.
+        load();
+      }
+    },
+    [load, eventId, rafflePool.length]
+  );
 
   const { send, connectedCount } = useBeaconChannel(event?.status === 'live' || event?.status === 'published' ? eventId : null, { role: 'host' }, onMessage);
 
@@ -196,6 +205,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
 
     let query = supabase.from('beacon_participants').select('id, name, score, completed_at').eq('event_id', eventId);
     const { data: pool } = await query;
+    setRafflePool((pool || []).map((p) => p.name));
     let eligible = (pool || []).filter((p) => !excluded.has(p.id));
     if (event.raffle_eligibility === 'completed') eligible = eligible.filter((p) => p.completed_at);
     if (event.raffle_eligibility === 'min_score') eligible = eligible.filter((p) => p.score >= (event.raffle_min_score || 0));
@@ -223,33 +233,35 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     await send({ type: 'raffle_drawn', payload: { winners: winnerPayload } });
   }
 
-  if (!loaded) return null;
-  if (!event) {
+  if (!loaded || !event || event.status === 'draft') {
     return (
       <div className="ch-page">
         <header className="ch-header">
           <BeaconHeaderBrand />
+          <div className="ch-header-right">
+            <a href="/beacon" className="ch-btn ch-btn-inverse">
+              <ArrowLeft size={16} strokeWidth={2} /> My events
+            </a>
+          </div>
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
-          <p>Event not found, or you don&apos;t have access to it.</p>
-          <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
-            <ArrowLeft size={16} strokeWidth={2} /> Back to my events
-          </a>
-        </div>
-      </div>
-    );
-  }
-  if (event.status === 'draft') {
-    return (
-      <div className="ch-page">
-        <header className="ch-header">
-          <BeaconHeaderBrand />
-        </header>
-        <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
-          <p>This event hasn&apos;t been published yet.</p>
-          <a href={`/beacon/${eventId}/edit`} className="ch-btn ch-btn-primary" style={{ marginTop: 16 }}>
-            Go to editor
-          </a>
+          {!loaded ? (
+            <p style={{ color: 'var(--text-secondary)' }}>Loading…</p>
+          ) : !event ? (
+            <>
+              <p>Event not found, or you don&apos;t have access to it.</p>
+              <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
+                <ArrowLeft size={16} strokeWidth={2} /> Back to my events
+              </a>
+            </>
+          ) : (
+            <>
+              <p>This event hasn&apos;t been published yet.</p>
+              <a href={`/beacon/${eventId}/edit`} className="ch-btn ch-btn-primary" style={{ marginTop: 16 }}>
+                Go to editor
+              </a>
+            </>
+          )}
         </div>
       </div>
     );
@@ -370,13 +382,9 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
                   Run raffle
                 </button>
                 {raffleWinners && (
-                  <ul>
-                    {raffleWinners.map((w) => (
-                      <li key={w.participant_id} style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>
-                        🎉 {w.name}
-                      </li>
-                    ))}
-                  </ul>
+                  <div style={{ background: 'var(--gradient-hero)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
+                    <RaffleWheel pool={rafflePool} winners={raffleWinners} />
+                  </div>
                 )}
               </div>
             )}

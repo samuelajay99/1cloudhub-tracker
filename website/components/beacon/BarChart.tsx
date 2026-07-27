@@ -1,8 +1,7 @@
 'use client';
 
 import { QuestionOption, Tally } from '../../lib/beacon';
-
-const OPTION_COLORS = ['#0568AD', '#F7941D', '#7C3AED', '#4EC9EE', '#DB2777', '#6366F1'];
+import OptionShape, { optionStyle } from './OptionShape';
 
 export default function BarChart({
   options,
@@ -24,7 +23,7 @@ export default function BarChart({
         const t = byId.get(opt.id) || { option_id: opt.id, count: 0, pct: 0 };
         const isCorrect = correctOptionId && opt.id === correctOptionId;
         const isLeader = !correctOptionId && t.pct > 0 && t.pct === leaderPct;
-        const color = isCorrect ? 'var(--green-500)' : OPTION_COLORS[i % OPTION_COLORS.length];
+        const color = isCorrect ? 'var(--green-500)' : optionStyle(i).color;
         return (
           <div key={opt.id}>
             <div
@@ -39,16 +38,7 @@ export default function BarChart({
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: large ? 12 : 9,
-                    height: large ? 12 : 9,
-                    borderRadius: '50%',
-                    background: color,
-                    flexShrink: 0,
-                  }}
-                />
+                <OptionShape index={i} size={large ? 16 : 12} />
                 {opt.label}
                 {isCorrect ? ' ✓' : ''}
               </span>
