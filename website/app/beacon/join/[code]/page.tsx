@@ -1,11 +1,13 @@
 'use client';
 
-import { use, useCallback, useEffect, useRef, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
 import { BeaconBrand } from '../../../../components/Brand';
 import BarChart from '../../../../components/beacon/BarChart';
 import OptionShape, { optionStyle } from '../../../../components/beacon/OptionShape';
+import CountdownRing from '../../../../components/beacon/CountdownRing';
+import { useCountdown } from '../../../../components/beacon/useCountdown';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import { BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
@@ -30,6 +32,8 @@ interface CurrentQuestion {
   title: string;
   options: QuestionOption[];
   total_questions: number;
+  time_limit_seconds?: number;
+  started_at?: string;
 }
 
 interface Results {
@@ -87,7 +91,6 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
   const [ownResult, setOwnResult] = useState<{ is_correct: boolean | null; points_awarded: number } | null>(null);
   const [results, setResults] = useState<Results | null>(null);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
-  const questionStartedAt = useRef<number>(0);
 
   const storageKey = `beacon_participant_${code}`;
 
@@ -104,7 +107,6 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
       setStage('results_shown');
     } else if (data.current_question) {
       setQuestion(data.current_question);
-      questionStartedAt.current = Date.now();
       if (data.already_answered) {
         setStage('answered_waiting');
       } else {
@@ -146,16 +148,23 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
     (msg: BeaconMessage) => {
       if (msg.type === 'question_started') {
         const p = msg.payload;
-        setQuestion({ id: p.question_id, index: p.index, title: p.title, options: p.options, total_questions: p.total_questions });
+        setQuestion({
+          id: p.question_id,
+          index: p.index,
+          title: p.title,
+          options: p.options,
+          total_questions: p.total_questions,
+          time_limit_seconds: p.time_limit_seconds,
+          started_at: p.started_at,
+        });
         setSelectedOption(null);
         setOwnResult(null);
         setResults(null);
-        questionStartedAt.current = Date.now();
         setStage('question_open');
       } else if (msg.type === 'results_revealed') {
         setResults(msg.payload);
         setStage((s) => (s === 'closed' ? s : 'results_shown'));
-      } else if (msg.type === 'leaderboard_shown') {
+      } else if (msg.type === 'leaderboard_shown' || msg.type === 'podium_shown') {
         setLeaderboardRows(msg.payload.rows);
         setStage('leaderboard_shown');
       } else if (msg.type === 'event_closed') {
@@ -166,6 +175,7 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
   );
 
   useBeaconChannel(eventId || null, { role: 'participant', participant_id: sessionToken }, onMessage);
+  const countdown = useCountdown(question?.started_at, question?.time_limit_seconds);
 
   async function handleRegister() {
     if (!name.trim() || !email.trim()) {
@@ -180,10 +190,9 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
   async function submitAnswer() {
     if (!question || !selectedOption) return;
     setSubmitting(true);
-    const responseTimeMs = Date.now() - questionStartedAt.current;
     const { data, error } = await callFunction<{ result: { is_correct: boolean | null; points_awarded: number; your_score: number } }>(
       'beacon-submit',
-      { session_token: sessionToken, question_id: question.id, option_id: selectedOption, response_time_ms: responseTimeMs }
+      { session_token: sessionToken, question_id: question.id, option_id: selectedOption }
     );
     setSubmitting(false);
     if (error || !data) {
@@ -235,8 +244,20 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
 
           {stage === 'question_open' && question && (
             <>
-              <div className="ch-kicker" style={{ justifyContent: 'center', marginBottom: 10 }}>
-                Question {question.index + 1} of {question.total_questions}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 10,
+                }}
+              >
+                <div className="ch-kicker" style={{ marginBottom: 0 }}>
+                  Question {question.index + 1} of {question.total_questions}
+                </div>
+                {countdown.active && (
+                  <CountdownRing seconds={countdown.remainingSeconds ?? 0} fraction={countdown.fraction} size={44} />
+                )}
               </div>
               <h1 style={titleStyle}>{question.title}</h1>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
@@ -245,7 +266,8 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
                   return (
                     <button
                       key={opt.id}
-                      onClick={() => setSelectedOption(opt.id)}
+                      onClick={() => !countdown.expired && setSelectedOption(opt.id)}
+                      disabled={countdown.expired}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -257,10 +279,11 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
                         color: '#fff',
                         fontWeight: 700,
                         fontSize: 'var(--text-md)',
-                        cursor: 'pointer',
+                        cursor: countdown.expired ? 'not-allowed' : 'pointer',
                         textAlign: 'left',
                         boxShadow: selected ? '0 4px 14px rgba(0,0,0,.25)' : 'var(--shadow-sm)',
                         transition: 'var(--transition-base)',
+                        opacity: countdown.expired ? 0.5 : 1,
                       }}
                     >
                       <OptionShape index={i} size={20} />
@@ -269,14 +292,20 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
                   );
                 })}
               </div>
-              <button
-                className="ch-btn ch-btn-accent full"
-                disabled={!selectedOption || submitting}
-                onClick={submitAnswer}
-                style={{ marginTop: 20 }}
-              >
-                {submitting ? 'Submitting…' : 'Submit answer'}
-              </button>
+              {countdown.expired ? (
+                <p style={{ ...subStyle, marginTop: 20, fontWeight: 600, color: 'var(--red-600)' }}>
+                  Time&apos;s up — waiting for the host…
+                </p>
+              ) : (
+                <button
+                  className="ch-btn ch-btn-accent full"
+                  disabled={!selectedOption || submitting}
+                  onClick={submitAnswer}
+                  style={{ marginTop: 20 }}
+                >
+                  {submitting ? 'Submitting…' : 'Submit answer'}
+                </button>
+              )}
             </>
           )}
 

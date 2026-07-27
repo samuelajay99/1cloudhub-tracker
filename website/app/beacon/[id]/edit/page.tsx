@@ -20,6 +20,7 @@ interface EditableQuestion {
   options: EditableOption[];
   correctOptionId: string | null;
   points: number;
+  timeLimitSeconds: number | null;
   explanation: string;
 }
 
@@ -35,6 +36,7 @@ function newQuestion(): EditableQuestion {
     ],
     correctOptionId: null,
     points: 10,
+    timeLimitSeconds: null,
     explanation: '',
   };
 }
@@ -90,6 +92,7 @@ function Editor({ eventId }: { eventId: string }) {
         options: q.options,
         correctOptionId: q.correct_option_id,
         points: q.points,
+        timeLimitSeconds: q.time_limit_seconds,
         explanation: q.explanation || '',
       }))
     );
@@ -203,6 +206,7 @@ function Editor({ eventId }: { eventId: string }) {
         options: q.options.filter((o) => o.label.trim()).map((o) => ({ id: o.id, label: o.label.trim() })),
         correct_option_id: type === 'quiz' ? q.correctOptionId : null,
         points: type === 'quiz' ? q.points : 0,
+        time_limit_seconds: q.timeLimitSeconds || null,
         explanation: q.explanation.trim() || null,
       }))
     );
@@ -392,6 +396,22 @@ function Editor({ eventId }: { eventId: string }) {
               <button className="ch-btn ch-btn-ghost" onClick={() => addOption(q.key)} style={{ marginBottom: 8 }}>
                 <Plus size={13} strokeWidth={2} /> Add option
               </button>
+            )}
+
+            <label className="ch-label">Time limit in seconds (optional)</label>
+            <input
+              type="number"
+              className="ch-field"
+              min={5}
+              placeholder="No limit — advance manually"
+              value={q.timeLimitSeconds ?? ''}
+              disabled={!isDraft}
+              onChange={(e) => updateQuestion(q.key, { timeLimitSeconds: e.target.value ? Number(e.target.value) : null })}
+            />
+            {type === 'quiz' && q.timeLimitSeconds && (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '-6px 0 14px' }}>
+                Faster correct answers earn more points — full points right away, down to half at the deadline.
+              </p>
             )}
 
             {type === 'quiz' && (

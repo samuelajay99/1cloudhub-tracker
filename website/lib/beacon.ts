@@ -33,6 +33,7 @@ export interface BeaconEvent {
   status: EventStatus;
   join_code: string | null;
   current_question_index: number | null;
+  current_question_started_at: string | null;
   leaderboard_visible: boolean;
   leaderboard_scope: LeaderboardScope | null;
   raffle_enabled: boolean;
@@ -55,6 +56,7 @@ export interface BeaconQuestion {
   options: QuestionOption[];
   correct_option_id: string | null;
   points: number;
+  time_limit_seconds: number | null;
   explanation: string | null;
   revealed_at: string | null;
   created_at: string;
@@ -98,7 +100,15 @@ export interface Tally {
 export type BeaconMessage =
   | {
       type: 'question_started';
-      payload: { question_id: string; index: number; title: string; options: QuestionOption[]; total_questions: number };
+      payload: {
+        question_id: string;
+        index: number;
+        title: string;
+        options: QuestionOption[];
+        total_questions: number;
+        time_limit_seconds?: number;
+        started_at: string;
+      };
     }
   | {
       type: 'results_revealed';
@@ -126,6 +136,7 @@ export type BeaconMessage =
       payload: { scope: LeaderboardScope; rows: { participant_id: string; name: string; score: number; rank: number }[] };
     }
   | { type: 'raffle_drawn'; payload: { winners: { participant_id: string; name: string }[] } }
+  | { type: 'podium_shown'; payload: { rows: { participant_id: string; name: string; score: number; rank: number }[] } }
   | { type: 'event_closed'; payload: Record<string, never> };
 
 // Unambiguous alphabet: no 0/O or 1/I/L confusion when read off a screen.
@@ -170,4 +181,18 @@ export function computeTallies(
 
 export function beaconChannelTopic(eventId: string): string {
   return `beacon:event:${eventId}`;
+}
+
+// Kahoot-style speed bonus: a correct answer is worth 100% of the
+// question's points right at the buzzer, decaying linearly down to 50% by
+// the time the limit runs out — being right always beats being fast, but
+// being fast still matters. Questions with no time limit always award full
+// points (today's original, simpler behavior). Mirrored server-side in
+// supabase/functions/beacon-submit/index.ts, which is the actual source of
+// truth — this copy is for client-side display/preview only.
+export function computeSpeedPoints(basePoints: number, elapsedMs: number, timeLimitSeconds: number | null): number {
+  if (!timeLimitSeconds || timeLimitSeconds <= 0) return basePoints;
+  const clampedElapsed = Math.max(0, Math.min(elapsedMs, timeLimitSeconds * 1000));
+  const speedFactor = 1 - (clampedElapsed / (timeLimitSeconds * 1000)) * 0.5;
+  return Math.round(basePoints * speedFactor);
 }

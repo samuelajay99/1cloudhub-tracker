@@ -7,12 +7,15 @@ import QRCode from '../../../../components/beacon/QRCode';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import RaffleWheel from '../../../../components/beacon/RaffleWheel';
+import Podium from '../../../../components/beacon/Podium';
 import OptionShape, { optionStyle } from '../../../../components/beacon/OptionShape';
+import CountdownRing from '../../../../components/beacon/CountdownRing';
+import { useCountdown } from '../../../../components/beacon/useCountdown';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import { BeaconEvent, BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
 import { ArrowLeft } from 'lucide-react';
 
-type View = 'waiting' | 'question' | 'results' | 'leaderboard' | 'raffle' | 'closed';
+type View = 'waiting' | 'question' | 'results' | 'leaderboard' | 'podium' | 'raffle' | 'closed';
 
 export default function BeaconPresentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,6 +31,8 @@ function PresenterView({ eventId }: { eventId: string }) {
   const [questionOptions, setQuestionOptions] = useState<QuestionOption[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [questionStartedAt, setQuestionStartedAt] = useState<string | undefined>(undefined);
+  const [questionTimeLimit, setQuestionTimeLimit] = useState<number | undefined>(undefined);
   const [tallies, setTallies] = useState<Tally[]>([]);
   const [totalResponses, setTotalResponses] = useState(0);
   const [registeredCount, setRegisteredCount] = useState(0);
@@ -35,6 +40,7 @@ function PresenterView({ eventId }: { eventId: string }) {
   const [correctOptionId, setCorrectOptionId] = useState<string | undefined>(undefined);
   const [explanation, setExplanation] = useState<string | undefined>(undefined);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>([]);
+  const [podiumRows, setPodiumRows] = useState<LeaderboardRow[]>([]);
   const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[]>([]);
   const [participantPool, setParticipantPool] = useState<string[]>([]);
 
@@ -70,6 +76,8 @@ function PresenterView({ eventId }: { eventId: string }) {
         setQuestionTitle(q.title);
         setQuestionOptions(q.options);
         setQuestionIndex(q.order_index);
+        setQuestionStartedAt(eventRow.current_question_started_at || undefined);
+        setQuestionTimeLimit(q.time_limit_seconds || undefined);
         const { count: qCount } = await supabase.from('beacon_questions').select('id', { count: 'exact', head: true }).eq('event_id', eventId);
         setTotalQuestions(qCount || 0);
 
@@ -104,6 +112,8 @@ function PresenterView({ eventId }: { eventId: string }) {
       setQuestionOptions(msg.payload.options);
       setQuestionIndex(msg.payload.index);
       setTotalQuestions(msg.payload.total_questions);
+      setQuestionStartedAt(msg.payload.started_at);
+      setQuestionTimeLimit(msg.payload.time_limit_seconds);
       setTallies([]);
       setTotalResponses(0);
       setCorrectOptionId(undefined);
@@ -123,6 +133,9 @@ function PresenterView({ eventId }: { eventId: string }) {
     } else if (msg.type === 'leaderboard_shown') {
       setLeaderboardRows(msg.payload.rows);
       setView('leaderboard');
+    } else if (msg.type === 'podium_shown') {
+      setPodiumRows(msg.payload.rows);
+      setView('podium');
     } else if (msg.type === 'raffle_drawn') {
       const { data: participants } = await supabase.from('beacon_participants').select('name').eq('event_id', eventId);
       setParticipantPool((participants || []).map((p) => p.name));
@@ -134,6 +147,7 @@ function PresenterView({ eventId }: { eventId: string }) {
   }, [eventId]);
 
   useBeaconChannel(eventId, { role: 'presenter' }, onMessage);
+  const countdown = useCountdown(questionStartedAt, questionTimeLimit);
 
   if (!loaded || !event) return null;
 
@@ -202,6 +216,11 @@ function PresenterView({ eventId }: { eventId: string }) {
           <div style={{ fontSize: 'var(--text-md)', color: 'var(--sky-400)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>
             QUESTION {questionIndex + 1} OF {totalQuestions}
           </div>
+          {countdown.active && (
+            <div style={{ marginBottom: 20 }}>
+              <CountdownRing seconds={countdown.remainingSeconds ?? 0} fraction={countdown.fraction} size={92} />
+            </div>
+          )}
           <h1 style={{ fontSize: 'var(--text-3xl)', color: 'var(--white)', maxWidth: 900, marginBottom: 32 }}>{questionTitle}</h1>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, width: '100%', maxWidth: 700 }}>
             {questionOptions.map((opt, i) => (
@@ -252,6 +271,13 @@ function PresenterView({ eventId }: { eventId: string }) {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', padding: 24 }}>
             <Leaderboard rows={leaderboardRows} large />
           </div>
+        </div>
+      )}
+
+      {view === 'podium' && (
+        <div style={{ width: '100%', maxWidth: 800 }}>
+          <h1 style={{ fontSize: 'var(--text-3xl)', color: 'var(--white)', marginBottom: 40 }}>🏆 Final results</h1>
+          <Podium rows={podiumRows} />
         </div>
       )}
 

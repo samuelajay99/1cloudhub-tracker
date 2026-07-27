@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
   const { data: event, error: eventErr } = await supabase
     .from("beacon_events")
-    .select("id, title, type, status, current_question_index")
+    .select("id, title, type, status, current_question_index, current_question_started_at")
     .eq("join_code", joinCode)
     .single();
 
@@ -92,13 +92,13 @@ Deno.serve(async (req) => {
   if (event.status === "live" && event.current_question_index !== null) {
     const { data: question } = await supabase
       .from("beacon_questions")
-      .select("id, order_index, title, options, correct_option_id, explanation, revealed_at")
+      .select("id, order_index, title, options, correct_option_id, explanation, revealed_at, time_limit_seconds")
       .eq("event_id", event.id)
       .eq("order_index", event.current_question_index)
       .single();
 
     if (question) {
-      currentQuestion = toPublicQuestion(question);
+      currentQuestion = { ...toPublicQuestion(question), started_at: event.current_question_started_at ?? undefined };
 
       const { data: ownResponse } = await supabase
         .from("beacon_responses")

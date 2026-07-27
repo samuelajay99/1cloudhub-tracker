@@ -22,6 +22,7 @@ export interface PublicQuestion {
   index: number;
   title: string;
   options: { id: string; label: string }[];
+  time_limit_seconds?: number;
 }
 
 // Strips correct_option_id/explanation — the only place that boundary is
@@ -32,8 +33,25 @@ export function toPublicQuestion(q: {
   order_index: number;
   title: string;
   options: { id: string; label: string }[];
+  time_limit_seconds?: number | null;
 }): PublicQuestion {
-  return { id: q.id, index: q.order_index, title: q.title, options: q.options };
+  return {
+    id: q.id,
+    index: q.order_index,
+    title: q.title,
+    options: q.options,
+    time_limit_seconds: q.time_limit_seconds ?? undefined,
+  };
+}
+
+// Kahoot-style speed bonus — mirrored in website/lib/beacon.ts for
+// client-side display; this copy is the actual source of truth since
+// scoring happens here, server-side, from a server-measured elapsed time.
+export function computeSpeedPoints(basePoints: number, elapsedMs: number, timeLimitSeconds: number | null | undefined): number {
+  if (!timeLimitSeconds || timeLimitSeconds <= 0) return basePoints;
+  const clampedElapsed = Math.max(0, Math.min(elapsedMs, timeLimitSeconds * 1000));
+  const speedFactor = 1 - (clampedElapsed / (timeLimitSeconds * 1000)) * 0.5;
+  return Math.round(basePoints * speedFactor);
 }
 
 export interface Tally {

@@ -11,6 +11,9 @@ import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import StatCard from '../../../../components/beacon/StatCard';
 import RaffleWheel from '../../../../components/beacon/RaffleWheel';
+import Podium from '../../../../components/beacon/Podium';
+import CountdownRing from '../../../../components/beacon/CountdownRing';
+import { useCountdown } from '../../../../components/beacon/useCountdown';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import {
   BeaconEvent,
@@ -38,6 +41,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
   const [registeredCount, setRegisteredCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
+  const [podiumRows, setPodiumRows] = useState<LeaderboardRow[] | null>(null);
   const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[] | null>(null);
   const [rafflePool, setRafflePool] = useState<string[]>([]);
 
@@ -97,6 +101,8 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
         setCompletedCount(msg.payload.completed_count);
       } else if (msg.type === 'leaderboard_shown') {
         setLeaderboardRows(msg.payload.rows);
+      } else if (msg.type === 'podium_shown') {
+        setPodiumRows(msg.payload.rows);
       } else if (msg.type === 'raffle_drawn') {
         if (rafflePool.length === 0) {
           const { data: participants } = await supabase.from('beacon_participants').select('name').eq('event_id', eventId);
@@ -112,11 +118,13 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
   );
 
   const { send, connectedCount } = useBeaconChannel(event?.status === 'live' || event?.status === 'published' ? eventId : null, { role: 'host' }, onMessage);
+  const countdown = useCountdown(event?.current_question_started_at ?? undefined, currentQuestion?.time_limit_seconds ?? undefined);
 
   async function goLive() {
+    const startedAt = new Date().toISOString();
     const { error } = await supabase
       .from('beacon_events')
-      .update({ status: 'live', live_started_at: new Date().toISOString(), current_question_index: 0 })
+      .update({ status: 'live', live_started_at: startedAt, current_question_index: 0, current_question_started_at: startedAt })
       .eq('id', eventId);
     if (error) return showToast(error.message, 'error');
     await load();
@@ -124,7 +132,15 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     if (q) {
       await send({
         type: 'question_started',
-        payload: { question_id: q.id, index: 0, title: q.title, options: q.options, total_questions: questions.length },
+        payload: {
+          question_id: q.id,
+          index: 0,
+          title: q.title,
+          options: q.options,
+          total_questions: questions.length,
+          time_limit_seconds: q.time_limit_seconds ?? undefined,
+          started_at: startedAt,
+        },
       });
     }
   }
@@ -133,7 +149,11 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     if (!event || event.current_question_index == null) return;
     const nextIndex = event.current_question_index + 1;
     if (nextIndex >= questions.length) return;
-    const { error } = await supabase.from('beacon_events').update({ current_question_index: nextIndex }).eq('id', eventId);
+    const startedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('beacon_events')
+      .update({ current_question_index: nextIndex, current_question_started_at: startedAt })
+      .eq('id', eventId);
     if (error) return showToast(error.message, 'error');
     setTallies([]);
     setTotalResponses(0);
@@ -141,7 +161,15 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     const q = questions[nextIndex];
     await send({
       type: 'question_started',
-      payload: { question_id: q.id, index: nextIndex, title: q.title, options: q.options, total_questions: questions.length },
+      payload: {
+        question_id: q.id,
+        index: nextIndex,
+        title: q.title,
+        options: q.options,
+        total_questions: questions.length,
+        time_limit_seconds: q.time_limit_seconds ?? undefined,
+        started_at: startedAt,
+      },
     });
   }
 
@@ -196,6 +224,22 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     await supabase.from('beacon_events').update({ leaderboard_scope: scope }).eq('id', eventId);
     setLeaderboardRows(rows);
     await send({ type: 'leaderboard_shown', payload: { scope, rows } });
+  }
+
+  async function showPodium() {
+    const { data: participants } = await supabase
+      .from('beacon_participants')
+      .select('id, name, score, completed_at')
+      .eq('event_id', eventId);
+    const sorted = leaderboardSort(participants || []);
+    const rows: LeaderboardRow[] = sorted.slice(0, 3).map((p, i) => ({
+      participant_id: p.id,
+      name: p.name,
+      score: p.score,
+      rank: i + 1,
+    }));
+    setPodiumRows(rows);
+    await send({ type: 'podium_shown', payload: { rows } });
   }
 
   async function runRaffle() {
@@ -319,8 +363,13 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
 
         {event.status === 'live' && currentQuestion && (
           <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
-            <div className="ch-kicker" style={{ marginBottom: 10 }}>
-              Question {event.current_question_index! + 1} of {questions.length}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div className="ch-kicker" style={{ marginBottom: 0 }}>
+                Question {event.current_question_index! + 1} of {questions.length}
+              </div>
+              {countdown.active && !resultsRevealed && (
+                <CountdownRing seconds={countdown.remainingSeconds ?? 0} fraction={countdown.fraction} size={40} />
+              )}
             </div>
             <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>{currentQuestion.title}</h2>
             <BarChart
@@ -360,7 +409,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
             {event.leaderboard_visible && event.type === 'quiz' && (
               <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
                 <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Leaderboard</h2>
-                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
                   <button className="ch-btn ch-btn-secondary" onClick={() => showLeaderboard('top5')}>
                     Top 5
                   </button>
@@ -370,8 +419,16 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
                   <button className="ch-btn ch-btn-secondary" onClick={() => showLeaderboard('full')}>
                     Full
                   </button>
+                  <button className="ch-btn ch-btn-primary" onClick={showPodium}>
+                    🏆 Reveal podium
+                  </button>
                 </div>
                 {leaderboardRows && <Leaderboard rows={leaderboardRows} />}
+                {podiumRows && (
+                  <div style={{ background: 'var(--gradient-hero)', borderRadius: 'var(--radius-lg)', padding: '24px', marginTop: 16 }}>
+                    <Podium rows={podiumRows} />
+                  </div>
+                )}
               </div>
             )}
 

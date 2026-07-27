@@ -9,10 +9,15 @@
 // automatically by the Edge Function runtime.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { CORS_HEADERS, json, computeTallies, broadcastToChannel } from "../_shared/beacon.ts";
+import { CORS_HEADERS, json, computeTallies, computeSpeedPoints, broadcastToChannel } from "../_shared/beacon.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// How much clock/network slack to allow past the nominal deadline before
+// rejecting a submission as late — a legitimate right-at-the-buzzer answer
+// can easily lose a few hundred ms to request latency alone.
+const LATE_GRACE_MS = 1200;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -26,7 +31,6 @@ Deno.serve(async (req) => {
     session_token?: string;
     question_id?: string;
     option_id?: string;
-    response_time_ms?: number;
   };
   try {
     body = await req.json();
@@ -37,8 +41,6 @@ Deno.serve(async (req) => {
   const sessionToken = body.session_token || "";
   const questionId = body.question_id || "";
   const optionId = body.option_id || "";
-  const responseTimeMs =
-    typeof body.response_time_ms === "number" ? Math.max(0, Math.round(body.response_time_ms)) : null;
 
   if (!sessionToken || !questionId || !optionId) {
     return json({ error: "session_token, question_id, and option_id are required" }, 400);
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
 
   const { data: question, error: questionErr } = await supabase
     .from("beacon_questions")
-    .select("id, event_id, order_index, options, correct_option_id, points, revealed_at")
+    .select("id, event_id, order_index, options, correct_option_id, points, time_limit_seconds, revealed_at")
     .eq("id", questionId)
     .single();
   if (questionErr || !question) {
@@ -69,7 +71,7 @@ Deno.serve(async (req) => {
 
   const { data: event, error: eventErr } = await supabase
     .from("beacon_events")
-    .select("id, type, status, current_question_index")
+    .select("id, type, status, current_question_index, current_question_started_at")
     .eq("id", participant.event_id)
     .single();
   if (eventErr || !event) {
@@ -87,8 +89,16 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid option" }, 400);
   }
 
+  // Server-measured elapsed time — never trust a client-reported duration
+  // for scoring, or anyone could just claim they answered instantly.
+  const startedAtMs = event.current_question_started_at ? new Date(event.current_question_started_at).getTime() : Date.now();
+  const elapsedMs = Math.max(0, Date.now() - startedAtMs);
+  if (question.time_limit_seconds && elapsedMs > question.time_limit_seconds * 1000 + LATE_GRACE_MS) {
+    return json({ error: "Time's up for this question" }, 403);
+  }
+
   const isCorrect = event.type === "quiz" ? optionId === question.correct_option_id : null;
-  const pointsAwarded = isCorrect ? question.points : 0;
+  const pointsAwarded = isCorrect ? computeSpeedPoints(question.points, elapsedMs, question.time_limit_seconds) : 0;
 
   const { error: insertErr } = await supabase.from("beacon_responses").insert({
     event_id: participant.event_id,
@@ -97,7 +107,7 @@ Deno.serve(async (req) => {
     option_id: optionId,
     is_correct: isCorrect,
     points_awarded: pointsAwarded,
-    response_time_ms: responseTimeMs,
+    response_time_ms: elapsedMs,
   });
 
   let finalIsCorrect = isCorrect;
