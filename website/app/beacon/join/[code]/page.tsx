@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
-import { OrbitBrand } from '../../../../components/Brand';
+import { BeaconBrand } from '../../../../components/Brand';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
@@ -202,7 +202,7 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
       <Toast toast={toast} />
       <div className="ch-shell-narrow" style={{ position: 'relative', zIndex: 2 }}>
         <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
-          <OrbitBrand center />
+          <BeaconBrand center />
 
           {stage === 'loading' && <p style={subStyle}>Loading…</p>}
 

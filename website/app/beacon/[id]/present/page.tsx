@@ -9,6 +9,7 @@ import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leade
 import RaffleWheel from '../../../../components/beacon/RaffleWheel';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import { BeaconEvent, BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
+import { ArrowLeft } from 'lucide-react';
 
 type View = 'waiting' | 'question' | 'results' | 'leaderboard' | 'raffle' | 'closed';
 
@@ -149,8 +150,38 @@ function PresenterView({ eventId }: { eventId: string }) {
         justifyContent: 'center',
         padding: '48px',
         textAlign: 'center',
+        position: 'relative',
       }}
     >
+      <a
+        href={`/beacon/${eventId}/live`}
+        style={{
+          position: 'fixed',
+          top: 20,
+          left: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          color: 'rgba(255,255,255,.55)',
+          fontSize: 'var(--text-xs)',
+          textDecoration: 'none',
+          zIndex: 10,
+          padding: '6px 10px',
+          borderRadius: 'var(--radius-pill)',
+          transition: 'var(--transition-base)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'rgba(255,255,255,.9)';
+          e.currentTarget.style.background = 'rgba(255,255,255,.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'rgba(255,255,255,.55)';
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <ArrowLeft size={14} strokeWidth={2} /> Exit presenter view
+      </a>
+
       {view === 'waiting' && (
         <>
           <h1 style={{ fontSize: 'var(--text-4xl)', color: 'var(--white)', marginBottom: 8 }}>{event.title}</h1>

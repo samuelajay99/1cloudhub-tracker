@@ -4,11 +4,12 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
-import { HeaderBrand, FooterBrand } from '../../../../components/Brand';
+import { BeaconHeaderBrand, FooterBrand } from '../../../../components/Brand';
 import BeaconGate from '../../../../components/beacon/BeaconGate';
 import QRCode from '../../../../components/beacon/QRCode';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
+import StatCard from '../../../../components/beacon/StatCard';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
 import {
   BeaconEvent,
@@ -19,7 +20,7 @@ import {
   leaderboardSort,
   computeTallies,
 } from '../../../../lib/beacon';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ArrowLeft, Users, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 
 export default function BeaconLivePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -227,12 +228,12 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     return (
       <div className="ch-page">
         <header className="ch-header">
-          <HeaderBrand />
+          <BeaconHeaderBrand />
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
           <p>Event not found, or you don&apos;t have access to it.</p>
           <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
-            Back to my events
+            <ArrowLeft size={16} strokeWidth={2} /> Back to my events
           </a>
         </div>
       </div>
@@ -242,7 +243,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     return (
       <div className="ch-page">
         <header className="ch-header">
-          <HeaderBrand />
+          <BeaconHeaderBrand />
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
           <p>This event hasn&apos;t been published yet.</p>
@@ -261,13 +262,13 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     <div className="ch-page">
       <Toast toast={toast} />
       <header className="ch-header">
-        <HeaderBrand />
+        <BeaconHeaderBrand />
         <div className="ch-header-right">
           <a href={`/beacon/${eventId}/present`} target="_blank" rel="noopener noreferrer" className="ch-btn ch-btn-inverse">
             Open presenter view <ExternalLink size={14} strokeWidth={2} />
           </a>
           <a href="/beacon" className="ch-btn ch-btn-inverse">
-            My events
+            <ArrowLeft size={16} strokeWidth={2} /> My events
           </a>
         </div>
       </header>
@@ -279,10 +280,15 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
         <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 24 }}>{event.title}</h1>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
-          <StatCard label="Registered" value={registeredCount} />
-          <StatCard label="Completed" value={completedCount} />
-          <StatCard label="Pending" value={pendingCount} />
-          <StatCard label="Completion" value={registeredCount > 0 ? `${Math.round((completedCount / registeredCount) * 100)}%` : '—'} />
+          <StatCard icon={Users} tone="blue" label="Registered" value={registeredCount} />
+          <StatCard icon={CheckCircle2} tone="green" label="Completed" value={completedCount} />
+          <StatCard icon={Clock} tone="orange" label="Pending" value={pendingCount} />
+          <StatCard
+            icon={TrendingUp}
+            tone="violet"
+            label="Completion"
+            value={registeredCount > 0 ? `${Math.round((completedCount / registeredCount) * 100)}%` : '—'}
+          />
         </div>
 
         {event.status === 'published' && (
@@ -386,15 +392,6 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
           <span>© 2026 1CloudHub. All rights reserved.</span>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 4 }}>{label}</div>
     </div>
   );
 }

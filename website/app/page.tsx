@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/useToast';
 import Toast from '../components/Toast';
-import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark } from '../components/Brand';
-import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown, Radio } from 'lucide-react';
+import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark, BeaconMark } from '../components/Brand';
+import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown } from 'lucide-react';
 
 type Stage = 'loading' | 'signedOut' | 'pending' | 'rejected' | 'approved';
 
@@ -320,7 +320,7 @@ export default function HomePage() {
             </div>
 
             <div className="ch-card pad-lg accent-top">
-              <IconTile icon={Radio} tone="sky" />
+              <BeaconMark size={52} />
               <h3>Beacon</h3>
               <p className="desc">
                 Live polls and quizzes for presentations and events — QR-code join, real-time

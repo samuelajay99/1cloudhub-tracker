@@ -4,11 +4,13 @@ import { use, useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
-import { HeaderBrand, FooterBrand } from '../../../../components/Brand';
+import { BeaconHeaderBrand, FooterBrand } from '../../../../components/Brand';
 import BeaconGate from '../../../../components/beacon/BeaconGate';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
+import StatCard from '../../../../components/beacon/StatCard';
 import { BeaconEvent, BeaconParticipant, BeaconQuestion, BeaconResponse, computeTallies, leaderboardSort } from '../../../../lib/beacon';
+import { ArrowLeft, Users, CheckCircle2, TrendingUp, Target, Trophy, TrendingDown, Percent, PartyPopper, Archive } from 'lucide-react';
 
 export default function BeaconAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -65,12 +67,12 @@ function Analytics({ eventId }: { eventId: string }) {
     return (
       <div className="ch-page">
         <header className="ch-header">
-          <HeaderBrand />
+          <BeaconHeaderBrand />
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
           <p>Event not found, or you don&apos;t have access to it.</p>
           <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
-            Back to my events
+            <ArrowLeft size={16} strokeWidth={2} /> Back to my events
           </a>
         </div>
       </div>
@@ -99,15 +101,15 @@ function Analytics({ eventId }: { eventId: string }) {
     <div className="ch-page">
       <Toast toast={toast} />
       <header className="ch-header">
-        <HeaderBrand />
+        <BeaconHeaderBrand />
         <div className="ch-header-right">
           <a href="/beacon" className="ch-btn ch-btn-inverse">
-            My events
+            <ArrowLeft size={16} strokeWidth={2} /> My events
           </a>
         </div>
       </header>
 
-      <div className="ch-shell" style={{ padding: '48px 32px 96px', maxWidth: 800 }}>
+      <div className="ch-shell" style={{ padding: '48px 32px 96px', maxWidth: 860 }}>
         <div className="ch-kicker" style={{ marginBottom: 14 }}>
           {event.status}
         </div>
@@ -115,32 +117,32 @@ function Analytics({ eventId }: { eventId: string }) {
           <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 24 }}>{event.title} — analytics</h1>
           {event.status === 'closed' && (
             <button className="ch-btn ch-btn-secondary" onClick={archiveEvent}>
-              Archive event
+              <Archive size={15} strokeWidth={2} /> Archive event
             </button>
           )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
-          <StatCard label="Registrations" value={registrations} />
-          <StatCard label="Completions" value={completions} />
-          <StatCard label="Completion rate" value={`${completionRate}%`} />
+          <StatCard icon={Users} tone="blue" label="Registrations" value={registrations} />
+          <StatCard icon={CheckCircle2} tone="green" label="Completions" value={completions} />
+          <StatCard icon={TrendingUp} tone="orange" label="Completion rate" value={`${completionRate}%`} />
         </div>
 
         {event.type === 'quiz' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
-            <StatCard label="Average score" value={avgScore} />
-            <StatCard label="Highest score" value={highScore} />
-            <StatCard label="Lowest score" value={lowScore} />
-            <StatCard label="Correct responses" value={`${correctPct}%`} />
+            <StatCard icon={Target} tone="violet" label="Average score" value={avgScore} />
+            <StatCard icon={Trophy} tone="orange" label="Highest score" value={highScore} />
+            <StatCard icon={TrendingDown} tone="sky" label="Lowest score" value={lowScore} />
+            <StatCard icon={Percent} tone="green" label="Correct responses" value={`${correctPct}%`} />
           </div>
         )}
 
-        <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Questions</h2>
+        <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Question results</h2>
         {questions.map((q, i) => {
           const questionResponses = responses.filter((r) => r.question_id === q.id);
           const { tallies, total_responses } = computeTallies(q.options, questionResponses);
           return (
-            <div key={q.id} className="ch-card pad-lg" style={{ marginBottom: 16 }}>
+            <div key={q.id} className="ch-card pad-lg accent-top" style={{ marginBottom: 16 }}>
               <div className="ch-kicker" style={{ marginBottom: 10 }}>
                 Question {i + 1}
               </div>
@@ -164,13 +166,18 @@ function Analytics({ eventId }: { eventId: string }) {
           <>
             <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Raffle winners</h2>
             {winners.length > 0 ? (
-              <ul>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                 {winners.map((w) => (
-                  <li key={w.participant_id} style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>
-                    🎉 {w.name}
-                  </li>
+                  <div
+                    key={w.participant_id}
+                    className="ch-card"
+                    style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-card-alt)' }}
+                  >
+                    <PartyPopper size={18} strokeWidth={2} color="#DB2777" />
+                    <span style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{w.name}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>No raffle has been run for this event yet.</p>
             )}
@@ -186,15 +193,6 @@ function Analytics({ eventId }: { eventId: string }) {
           <span>© 2026 1CloudHub. All rights reserved.</span>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 4 }}>{label}</div>
     </div>
   );
 }

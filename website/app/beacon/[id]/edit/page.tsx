@@ -4,10 +4,10 @@ import { use, useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { useToast } from '../../../../components/useToast';
 import Toast from '../../../../components/Toast';
-import { HeaderBrand, FooterBrand } from '../../../../components/Brand';
+import { BeaconHeaderBrand, FooterBrand } from '../../../../components/Brand';
 import BeaconGate from '../../../../components/beacon/BeaconGate';
 import { BeaconEvent, EventType, RaffleEligibility, generateJoinCode, newOptionId } from '../../../../lib/beacon';
-import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, ArrowLeft } from 'lucide-react';
 
 interface EditableOption {
   id: string;
@@ -250,12 +250,12 @@ function Editor({ eventId }: { eventId: string }) {
     return (
       <div className="ch-page">
         <header className="ch-header">
-          <HeaderBrand />
+          <BeaconHeaderBrand />
         </header>
         <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
           <p>Event not found, or you don&apos;t have access to it.</p>
           <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
-            Back to my events
+            <ArrowLeft size={16} strokeWidth={2} /> Back to my events
           </a>
         </div>
       </div>
@@ -266,10 +266,10 @@ function Editor({ eventId }: { eventId: string }) {
     <div className="ch-page">
       <Toast toast={toast} />
       <header className="ch-header">
-        <HeaderBrand />
+        <BeaconHeaderBrand />
         <div className="ch-header-right">
           <a href="/beacon" className="ch-btn ch-btn-inverse">
-            My events
+            <ArrowLeft size={16} strokeWidth={2} /> My events
           </a>
         </div>
       </header>

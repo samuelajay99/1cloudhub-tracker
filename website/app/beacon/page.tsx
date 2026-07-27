@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/useToast';
 import Toast from '../../components/Toast';
-import { HeaderBrand, FooterBrand } from '../../components/Brand';
+import { BeaconHeaderBrand, FooterBrand } from '../../components/Brand';
 import BeaconGate from '../../components/beacon/BeaconGate';
 import { BeaconEvent, EventStatus } from '../../lib/beacon';
-import { Plus, Copy, Trash2 } from 'lucide-react';
+import { Plus, Copy, Trash2, ArrowLeft } from 'lucide-react';
 
 const STATUS_TONE: Record<EventStatus, string> = {
   draft: 'ch-badge',
@@ -116,10 +116,10 @@ function EventList({ userId }: { userId: string }) {
     <div className="ch-page">
       <Toast toast={toast} />
       <header className="ch-header">
-        <HeaderBrand />
+        <BeaconHeaderBrand />
         <div className="ch-header-right">
           <a href="/" className="ch-btn ch-btn-inverse">
-            Back to Orbit
+            <ArrowLeft size={16} strokeWidth={2} /> Back to Orbit
           </a>
         </div>
       </header>

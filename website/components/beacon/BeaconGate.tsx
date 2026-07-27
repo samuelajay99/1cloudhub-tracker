@@ -3,7 +3,8 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
-import { OrbitBrand } from '../Brand';
+import { BeaconBrand } from '../Brand';
+import { ArrowLeft } from 'lucide-react';
 
 type GateState = 'loading' | 'signedOut' | 'notApproved' | 'noRequest' | 'requestPending' | 'requestRejected' | 'ready' | 'dbError';
 
@@ -156,14 +157,14 @@ function GateScreen({ title, body, children }: { title: string; body: string; ch
     <div className="ch-status-page">
       <div className="ch-shell-narrow" style={{ position: 'relative', zIndex: 2 }}>
         <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
-          <OrbitBrand center />
+          <BeaconBrand center />
           <h1 style={{ fontSize: 'var(--text-xl)' }}>{title}</h1>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '10px 0 22px', lineHeight: 'var(--leading-normal)' }}>
             {body}
           </p>
           {children}
           <a href="/" className="ch-btn ch-btn-secondary full" style={{ marginTop: 10 }}>
-            Back to Orbit
+            <ArrowLeft size={16} strokeWidth={2} /> Back to Orbit
           </a>
         </div>
       </div>
