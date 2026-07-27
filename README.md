@@ -3,7 +3,10 @@
 A marketplace of AI-powered apps for everyday life. First app: **Compass**
 (formerly "1CloudHub Tracker") — invite-only notes, AI task extraction,
 kanban board, and email drafting for a manager's daily workflow. Originally
-a local-only Claude Cowork build; now three pieces working together:
+a local-only Claude Cowork build; now three pieces working together. Second
+app: **Beacon** — live polls/quizzes for presentations and events (QR-code
+join, real-time results, leaderboards, raffles), built entirely inside
+`website/` at `/beacon` rather than as a separate deployable — see below.
 
 ```
 app/          Electron desktop app (Mac + Windows) — Compass, what people actually use
@@ -40,13 +43,32 @@ Security, not just app-side checks.
 
 **Website routing**: `/` is the single entry point — hero + inline sign-in/
 request-access when signed out, a "waiting for approval" message when
-pending, and the app marketplace grid (currently just Compass) when
-approved. `/login`, `/pending`, `/dashboard` are thin redirects to `/` kept
-for old links/bookmarks. `/admin` is the standalone approve/reject page for
-accounts with `is_admin = true`. Feedback throughout (signup sent, sign-in
-errors, admin approve/reject) goes through a shared toast component
+pending, and the app marketplace grid (Compass + Beacon) when approved.
+`/login`, `/pending`, `/dashboard` are thin redirects to `/` kept for old
+links/bookmarks. `/admin` is the standalone approve/reject page for accounts
+with `is_admin = true` — it also approves/rejects per-app access requests
+(see Beacon below). Feedback throughout (signup sent, sign-in errors, admin
+approve/reject) goes through a shared toast component
 (`website/components/Toast.tsx` + `useToast.ts`) rather than silent state
 changes.
+
+**Beacon** (`website/app/beacon/`) — an approved Orbit account is not
+automatically allowed to *host* Beacon events; that's a second, per-app
+approval gate on top of the platform-wide one, backed by a generic
+`app_access` table (`app_id` + `status`, not hardcoded to Beacon — future
+apps can reuse it) rather than a Beacon-specific column. Participants
+(people scanning a QR code at an event) never get a Supabase Auth session at
+all — they only ever go through two Edge Functions, `beacon-join` and
+`beacon-submit` (`supabase/functions/`), which run with the service-role key
+and are the entire trust boundary for anonymous participation; this is also
+where quiz answer keys and scoring logic live, fully server-side. Real-time
+sync between the host's live-control room, the presenter (projector) view,
+and participants' phones uses Supabase Realtime **Broadcast** channels (one
+per event, topic `beacon:event:<id>`) — chosen over Postgres Changes/CDC
+because Broadcast is the low-overhead mechanism built for "many listeners,
+frequent small messages," and over Postgres row-level RLS-gated channels
+because participants have no auth session to gate with in the first place.
+Full design rationale: `~/.claude/plans/crispy-hugging-meadow.md`.
 
 **Visual design**: the website follows the org's 1CloudHub design system —
 navy spine `#142947`, one brand blue `#0568AD`, orange `#F7941D` as a point
@@ -109,9 +131,13 @@ see `app/CLAUDE.md`.
   `app/CLAUDE.md`'s "Auth + cloud sync" section for the exact merge rules).
 - **Admin approval is manual**: no email notifications when someone
   requests access — check the website's `/admin` page periodically.
-- **One app in the marketplace so far**: the website's app grid is built to
-  add more cards, but only Compass exists today. The "More apps — Coming
-  soon" card is a placeholder, not a real roadmap commitment.
+- **Two apps in the marketplace so far**: Compass and Beacon. The "More
+  apps — Coming soon" card is a placeholder, not a real roadmap commitment.
+- **Beacon session tokens never expire**: a participant's browser stays
+  "joined" to a past event indefinitely (see `~/.claude/plans/crispy-
+  hugging-meadow.md` for the full list of accepted trade-offs). Fine for
+  small, single-event use; would need real expiry before this app is used
+  for anything longer-lived.
 
 ## Where things live
 

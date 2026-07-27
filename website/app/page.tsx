@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useToast } from '../components/useToast';
 import Toast from '../components/Toast';
 import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark } from '../components/Brand';
-import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown } from 'lucide-react';
+import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown, Radio } from 'lucide-react';
 
 type Stage = 'loading' | 'signedOut' | 'pending' | 'rejected' | 'approved';
 
@@ -316,6 +316,18 @@ export default function HomePage() {
               </div>
               <a href="/install" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--blue-600)' }}>
                 Need help installing? Step-by-step guide →
+              </a>
+            </div>
+
+            <div className="ch-card pad-lg accent-top">
+              <IconTile icon={Radio} tone="sky" />
+              <h3>Beacon</h3>
+              <p className="desc">
+                Live polls and quizzes for presentations and events — QR-code join, real-time
+                results, leaderboards, and raffles.
+              </p>
+              <a href="/beacon" className="ch-btn ch-btn-primary full" style={{ marginTop: 14 }}>
+                Open Beacon
               </a>
             </div>
 

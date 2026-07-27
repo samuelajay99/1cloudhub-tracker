@@ -11,24 +11,29 @@ both the Electron app (`../app/`) and the website (`../website/`).
    the `anon` / `service_role` keys from Settings → API.
 2. **Run the schema**: Settings → SQL Editor → paste the contents of every
    file in `migrations/`, in order (`0001_init.sql`, `0002_storage_bucket.sql`,
-   `0003_fix_admin_policy_recursion.sql`) → Run each. (Or, with the Supabase
-   CLI installed and linked: `supabase db push`.) Note: `0002` creates a
-   `releases` storage bucket that an earlier iteration of this project used
-   for hosting installers — that's since been replaced by GitHub Releases
-   (Supabase Storage's 50MB free-tier file limit rejected the 100-300MB
-   installers). The bucket is harmless to leave in place; nothing reads from
-   it anymore.
+   `0003_fix_admin_policy_recursion.sql`, `0004_beacon.sql`) → Run each. (Or,
+   with the Supabase CLI installed and linked: `supabase db push`.) Note:
+   `0002` creates a `releases` storage bucket that an earlier iteration of
+   this project used for hosting installers — that's since been replaced by
+   GitHub Releases (Supabase Storage's 50MB free-tier file limit rejected
+   the 100-300MB installers). The bucket is harmless to leave in place;
+   nothing reads from it anymore. `0004` adds Beacon's tables plus the
+   generic `app_access` per-app approval gate (see repo root `README.md`).
 3. **Turn off email confirmation** (recommended for a small invite-only
    group): Authentication → Sign In / Up → Email → toggle "Confirm email"
    off. Otherwise new signups need to click a confirmation link before they
    can sign in, on top of your admin approval.
-4. **Deploy the Edge Function**:
+4. **Deploy the Edge Functions**:
    ```
    supabase functions deploy claude-proxy
    supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+   supabase functions deploy beacon-join
+   supabase functions deploy beacon-submit
    ```
    (`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are injected automatically
-   by the Edge Function runtime — don't set those yourself.)
+   by the Edge Function runtime — don't set those yourself. `beacon-join`/
+   `beacon-submit` don't call any third-party API, so they need no secrets
+   of their own.)
 5. **Wire the URL/anon key into both clients**:
    - `app/index.html` — `SUPABASE_URL` / `SUPABASE_ANON_KEY` constants near
      the top of the `<script type="module">` block.
@@ -38,7 +43,12 @@ both the Electron app (`../app/`) and the website (`../website/`).
    in Supabase's Table Editor → `profiles`, find your row and set
    `is_admin = true` and `status = 'approved'`. Every signup after that
    goes through the in-app/on-site admin approval page instead.
-7. **GitHub Actions secrets** (repo → Settings → Secrets and variables →
+7. **If you're using Beacon**: visit `/beacon` on the website, click
+   "Request access," then approve your own request from the new "App access
+   requests" table on `/admin` — being an approved Orbit account isn't
+   enough to host Beacon events on its own, that's a deliberate second gate
+   (see repo root `README.md`).
+8. **GitHub Actions secrets** (repo → Settings → Secrets and variables →
    Actions): `.github/workflows/build-app.yml` no longer needs Supabase
    credentials — it attaches installers straight to a GitHub Release using
    the automatically-provided `GITHUB_TOKEN`. `SUPABASE_URL` /

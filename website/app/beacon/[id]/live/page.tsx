@@ -1,0 +1,400 @@
+'use client';
+
+import { use, useCallback, useEffect, useState } from 'react';
+import { supabase } from '../../../../lib/supabase';
+import { useToast } from '../../../../components/useToast';
+import Toast from '../../../../components/Toast';
+import { HeaderBrand, FooterBrand } from '../../../../components/Brand';
+import BeaconGate from '../../../../components/beacon/BeaconGate';
+import QRCode from '../../../../components/beacon/QRCode';
+import BarChart from '../../../../components/beacon/BarChart';
+import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
+import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
+import {
+  BeaconEvent,
+  BeaconQuestion,
+  BeaconMessage,
+  LeaderboardScope,
+  Tally,
+  leaderboardSort,
+  computeTallies,
+} from '../../../../lib/beacon';
+import { ExternalLink } from 'lucide-react';
+
+export default function BeaconLivePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return <BeaconGate>{() => <LiveControlRoom eventId={id} />}</BeaconGate>;
+}
+
+function LiveControlRoom({ eventId }: { eventId: string }) {
+  const { toast, showToast } = useToast();
+  const [loaded, setLoaded] = useState(false);
+  const [event, setEvent] = useState<BeaconEvent | null>(null);
+  const [questions, setQuestions] = useState<BeaconQuestion[]>([]);
+  const [tallies, setTallies] = useState<Tally[]>([]);
+  const [totalResponses, setTotalResponses] = useState(0);
+  const [registeredCount, setRegisteredCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
+  const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[] | null>(null);
+
+  const currentQuestion = event?.current_question_index != null ? questions[event.current_question_index] : null;
+  const resultsRevealed = !!currentQuestion?.revealed_at;
+
+  const load = useCallback(async () => {
+    const { data: eventRow, error: eventErr } = await supabase.from('beacon_events').select('*').eq('id', eventId).single();
+    if (eventErr || !eventRow) {
+      showToast('Event not found', 'error');
+      setLoaded(true);
+      return;
+    }
+    setEvent(eventRow);
+
+    const { data: questionRows } = await supabase
+      .from('beacon_questions')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('order_index', { ascending: true });
+    setQuestions(questionRows || []);
+
+    const [{ count: registered }, { count: completed }] = await Promise.all([
+      supabase.from('beacon_participants').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
+      supabase
+        .from('beacon_participants')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .not('completed_at', 'is', null),
+    ]);
+    setRegisteredCount(registered || 0);
+    setCompletedCount(completed || 0);
+
+    if (eventRow.current_question_index != null && questionRows) {
+      const q = questionRows[eventRow.current_question_index];
+      if (q) {
+        const { data: responses } = await supabase.from('beacon_responses').select('option_id').eq('question_id', q.id);
+        const { tallies: t, total_responses } = computeTallies(q.options, responses || []);
+        setTallies(t);
+        setTotalResponses(total_responses);
+      }
+    }
+
+    setLoaded(true);
+  }, [eventId, showToast]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const onMessage = useCallback((msg: BeaconMessage) => {
+    if (msg.type === 'tally_update') {
+      setTallies(msg.payload.tallies);
+      setTotalResponses(msg.payload.total_responses);
+      setRegisteredCount(msg.payload.registered_count);
+      setCompletedCount(msg.payload.completed_count);
+    } else if (msg.type === 'leaderboard_shown') {
+      setLeaderboardRows(msg.payload.rows);
+    } else if (msg.type === 'raffle_drawn') {
+      setRaffleWinners(msg.payload.winners);
+    } else if (msg.type === 'question_started' || msg.type === 'results_revealed' || msg.type === 'event_closed') {
+      // Another host tab (or this one, echoed back) changed state — reload from source of truth.
+      load();
+    }
+  }, [load]);
+
+  const { send, connectedCount } = useBeaconChannel(event?.status === 'live' || event?.status === 'published' ? eventId : null, { role: 'host' }, onMessage);
+
+  async function goLive() {
+    const { error } = await supabase
+      .from('beacon_events')
+      .update({ status: 'live', live_started_at: new Date().toISOString(), current_question_index: 0 })
+      .eq('id', eventId);
+    if (error) return showToast(error.message, 'error');
+    await load();
+    const q = questions[0];
+    if (q) {
+      await send({
+        type: 'question_started',
+        payload: { question_id: q.id, index: 0, title: q.title, options: q.options, total_questions: questions.length },
+      });
+    }
+  }
+
+  async function nextQuestion() {
+    if (!event || event.current_question_index == null) return;
+    const nextIndex = event.current_question_index + 1;
+    if (nextIndex >= questions.length) return;
+    const { error } = await supabase.from('beacon_events').update({ current_question_index: nextIndex }).eq('id', eventId);
+    if (error) return showToast(error.message, 'error');
+    setTallies([]);
+    setTotalResponses(0);
+    await load();
+    const q = questions[nextIndex];
+    await send({
+      type: 'question_started',
+      payload: { question_id: q.id, index: nextIndex, title: q.title, options: q.options, total_questions: questions.length },
+    });
+  }
+
+  async function revealResults() {
+    if (!currentQuestion || !event) return;
+    const { error } = await supabase
+      .from('beacon_questions')
+      .update({ revealed_at: new Date().toISOString() })
+      .eq('id', currentQuestion.id);
+    if (error) return showToast(error.message, 'error');
+
+    const { data: responses } = await supabase.from('beacon_responses').select('option_id').eq('question_id', currentQuestion.id);
+    const { tallies: t, total_responses } = computeTallies(currentQuestion.options, responses || []);
+    setTallies(t);
+    setTotalResponses(total_responses);
+    await load();
+    await send({
+      type: 'results_revealed',
+      payload: {
+        question_id: currentQuestion.id,
+        tallies: t,
+        total_responses,
+        correct_option_id: event.type === 'quiz' ? currentQuestion.correct_option_id || undefined : undefined,
+        explanation: currentQuestion.explanation || undefined,
+      },
+    });
+  }
+
+  async function closeSubmissions() {
+    const { error } = await supabase
+      .from('beacon_events')
+      .update({ status: 'closed', closed_at: new Date().toISOString() })
+      .eq('id', eventId);
+    if (error) return showToast(error.message, 'error');
+    await load();
+    await send({ type: 'event_closed', payload: {} });
+  }
+
+  async function showLeaderboard(scope: LeaderboardScope) {
+    const { data: participants } = await supabase
+      .from('beacon_participants')
+      .select('id, name, score, completed_at')
+      .eq('event_id', eventId);
+    const sorted = leaderboardSort(participants || []);
+    const limit = scope === 'top5' ? 5 : scope === 'top10' ? 10 : sorted.length;
+    const rows: LeaderboardRow[] = sorted.slice(0, limit).map((p, i) => ({
+      participant_id: p.id,
+      name: p.name,
+      score: p.score,
+      rank: i + 1,
+    }));
+    await supabase.from('beacon_events').update({ leaderboard_scope: scope }).eq('id', eventId);
+    setLeaderboardRows(rows);
+    await send({ type: 'leaderboard_shown', payload: { scope, rows } });
+  }
+
+  async function runRaffle() {
+    if (!event) return;
+    const { data: existingWinners } = await supabase.from('beacon_raffle_winners').select('participant_id').eq('event_id', eventId);
+    const excluded = new Set((existingWinners || []).map((w) => w.participant_id));
+
+    let query = supabase.from('beacon_participants').select('id, name, score, completed_at').eq('event_id', eventId);
+    const { data: pool } = await query;
+    let eligible = (pool || []).filter((p) => !excluded.has(p.id));
+    if (event.raffle_eligibility === 'completed') eligible = eligible.filter((p) => p.completed_at);
+    if (event.raffle_eligibility === 'min_score') eligible = eligible.filter((p) => p.score >= (event.raffle_min_score || 0));
+
+    if (eligible.length === 0) {
+      showToast('No eligible participants left to draw from.', 'error');
+      return;
+    }
+
+    // Fisher-Yates shuffle.
+    for (let i = eligible.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
+    }
+    const winnerCount = Math.min(event.raffle_winner_count || 1, eligible.length);
+    const winners = eligible.slice(0, winnerCount);
+
+    const { error } = await supabase
+      .from('beacon_raffle_winners')
+      .insert(winners.map((w) => ({ event_id: eventId, participant_id: w.id })));
+    if (error) return showToast(error.message, 'error');
+
+    const winnerPayload = winners.map((w) => ({ participant_id: w.id, name: w.name }));
+    setRaffleWinners(winnerPayload);
+    await send({ type: 'raffle_drawn', payload: { winners: winnerPayload } });
+  }
+
+  if (!loaded) return null;
+  if (!event) {
+    return (
+      <div className="ch-page">
+        <header className="ch-header">
+          <HeaderBrand />
+        </header>
+        <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
+          <p>Event not found, or you don&apos;t have access to it.</p>
+          <a href="/beacon" className="ch-btn ch-btn-secondary" style={{ marginTop: 16 }}>
+            Back to my events
+          </a>
+        </div>
+      </div>
+    );
+  }
+  if (event.status === 'draft') {
+    return (
+      <div className="ch-page">
+        <header className="ch-header">
+          <HeaderBrand />
+        </header>
+        <div className="ch-shell-narrow" style={{ padding: '80px 32px', textAlign: 'center' }}>
+          <p>This event hasn&apos;t been published yet.</p>
+          <a href={`/beacon/${eventId}/edit`} className="ch-btn ch-btn-primary" style={{ marginTop: 16 }}>
+            Go to editor
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/beacon/join/${event.join_code}` : '';
+  const pendingCount = registeredCount - completedCount;
+
+  return (
+    <div className="ch-page">
+      <Toast toast={toast} />
+      <header className="ch-header">
+        <HeaderBrand />
+        <div className="ch-header-right">
+          <a href={`/beacon/${eventId}/present`} target="_blank" rel="noopener noreferrer" className="ch-btn ch-btn-inverse">
+            Open presenter view <ExternalLink size={14} strokeWidth={2} />
+          </a>
+          <a href="/beacon" className="ch-btn ch-btn-inverse">
+            My events
+          </a>
+        </div>
+      </header>
+
+      <div className="ch-shell" style={{ padding: '48px 32px 96px', maxWidth: 900 }}>
+        <div className="ch-kicker" style={{ marginBottom: 14 }}>
+          {event.status} {connectedCount > 0 && `· ${connectedCount} connected`}
+        </div>
+        <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 24 }}>{event.title}</h1>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
+          <StatCard label="Registered" value={registeredCount} />
+          <StatCard label="Completed" value={completedCount} />
+          <StatCard label="Pending" value={pendingCount} />
+          <StatCard label="Completion" value={registeredCount > 0 ? `${Math.round((completedCount / registeredCount) * 100)}%` : '—'} />
+        </div>
+
+        {event.status === 'published' && (
+          <div className="ch-card pad-lg" style={{ marginBottom: 24, textAlign: 'center' }}>
+            <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Waiting room</h2>
+            <QRCode url={joinUrl} size={220} />
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '16px 0' }}>{joinUrl}</p>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 20 }}>
+              Join code: <strong>{event.join_code}</strong>
+            </p>
+            <button className="ch-btn ch-btn-primary" onClick={goLive}>
+              Go live
+            </button>
+          </div>
+        )}
+
+        {event.status === 'live' && currentQuestion && (
+          <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
+            <div className="ch-kicker" style={{ marginBottom: 10 }}>
+              Question {event.current_question_index! + 1} of {questions.length}
+            </div>
+            <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>{currentQuestion.title}</h2>
+            <BarChart
+              options={currentQuestion.options}
+              tallies={tallies}
+              correctOptionId={resultsRevealed && event.type === 'quiz' ? currentQuestion.correct_option_id || undefined : undefined}
+            />
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 12 }}>{totalResponses} responses</p>
+            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+              {!resultsRevealed && (
+                <button className="ch-btn ch-btn-secondary" onClick={revealResults}>
+                  Reveal results
+                </button>
+              )}
+              {event.current_question_index! + 1 < questions.length ? (
+                <button className="ch-btn ch-btn-primary" onClick={nextQuestion}>
+                  Next question
+                </button>
+              ) : (
+                <button className="ch-btn ch-btn-primary" onClick={closeSubmissions}>
+                  Close submissions
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(event.status === 'closed' || event.status === 'archived') && (
+          <>
+            <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
+              <p style={{ fontSize: 'var(--text-sm)', marginBottom: 12 }}>Submissions are closed.</p>
+              <a href={`/beacon/${eventId}/analytics`} className="ch-btn ch-btn-secondary">
+                View analytics
+              </a>
+            </div>
+
+            {event.leaderboard_visible && event.type === 'quiz' && (
+              <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Leaderboard</h2>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  <button className="ch-btn ch-btn-secondary" onClick={() => showLeaderboard('top5')}>
+                    Top 5
+                  </button>
+                  <button className="ch-btn ch-btn-secondary" onClick={() => showLeaderboard('top10')}>
+                    Top 10
+                  </button>
+                  <button className="ch-btn ch-btn-secondary" onClick={() => showLeaderboard('full')}>
+                    Full
+                  </button>
+                </div>
+                {leaderboardRows && <Leaderboard rows={leaderboardRows} />}
+              </div>
+            )}
+
+            {event.raffle_enabled && (
+              <div className="ch-card pad-lg" style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 16 }}>Raffle</h2>
+                <button className="ch-btn ch-btn-primary" onClick={runRaffle} style={{ marginBottom: 16 }}>
+                  Run raffle
+                </button>
+                {raffleWinners && (
+                  <ul>
+                    {raffleWinners.map((w) => (
+                      <li key={w.participant_id} style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>
+                        🎉 {w.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <footer className="ch-footer">
+        <div className="ch-footer-bar" />
+        <div className="ch-footer-inner">
+          <FooterBrand />
+          <span>www.1cloudhub.com</span>
+          <span>© 2026 1CloudHub. All rights reserved.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 4 }}>{label}</div>
+    </div>
+  );
+}
