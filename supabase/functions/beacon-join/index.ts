@@ -52,18 +52,25 @@ Deno.serve(async (req) => {
   if (eventErr || !event) {
     return json({ error: "Event not found" }, 404);
   }
-  if (event.status !== "published" && event.status !== "live") {
-    return json({ error: "This event is not open for registration" }, 403);
-  }
 
   // Idempotent rejoin: same event + email reuses the existing row (and its
-  // id/session_token) rather than creating a duplicate participant.
+  // id/session_token) rather than creating a duplicate participant. Checked
+  // before the status gate below — someone who already registered must be
+  // able to reconnect after a refresh even once the host has closed
+  // submissions (to see final results), not just while it's still open.
   const { data: existing } = await supabase
     .from("beacon_participants")
     .select("id, name, score")
     .eq("event_id", event.id)
     .eq("email", email)
     .maybeSingle();
+
+  // A brand-new registration is only allowed while the event is actually
+  // open to join. An existing participant reconnecting is let through
+  // regardless of status, so refresh/reconnect never hard-locks them out.
+  if (!existing && event.status !== "published" && event.status !== "live") {
+    return json({ error: "This event is not open for registration" }, 403);
+  }
 
   let participant: { id: string; name: string; score: number };
   if (existing) {

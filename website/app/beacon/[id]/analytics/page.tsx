@@ -120,6 +120,12 @@ function Analytics({ eventId }: { eventId: string }) {
       </header>
 
       <div className="ch-shell" style={{ padding: '48px 32px 96px', maxWidth: 860 }}>
+        <a
+          href={`/beacon/${eventId}/live`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--blue-600)', marginBottom: 20 }}
+        >
+          <ArrowLeft size={15} strokeWidth={2} /> Back to this event
+        </a>
         <div className="ch-kicker" style={{ marginBottom: 14 }}>
           {event.status}
         </div>
