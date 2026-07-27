@@ -7,7 +7,7 @@
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
 export function json(body: unknown, status = 200): Response {

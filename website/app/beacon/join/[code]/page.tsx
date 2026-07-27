@@ -10,6 +10,7 @@ import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel
 import { BeaconMessage, QuestionOption, Tally } from '../../../../lib/beacon';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 type Stage =
   | 'loading'
@@ -41,11 +42,24 @@ async function callFunction<T>(name: string, body: unknown): Promise<{ data: T |
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        // Participants have no Supabase session, but the Edge Function
+        // gateway still requires a valid JWT by default — the public anon
+        // key satisfies that without needing a real login.
+        apikey: SUPABASE_ANON_KEY,
+        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
       body: JSON.stringify(body),
     });
-    const json = await resp.json();
-    if (!resp.ok) return { data: null, error: json.error || 'Something went wrong' };
+    let json: any = null;
+    try {
+      json = await resp.json();
+    } catch {
+      // Gateway-level rejections (e.g. missing/invalid auth) can return a
+      // non-JSON body — fall through to the generic error below.
+    }
+    if (!resp.ok) return { data: null, error: json?.error || json?.message || `Request failed (${resp.status})` };
     return { data: json, error: null };
   } catch {
     return { data: null, error: 'Network error — check your connection and try again.' };
