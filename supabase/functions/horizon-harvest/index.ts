@@ -101,33 +101,36 @@ Deno.serve(async (req) => {
   let outputTokens = 0;
   const beatErrors: string[] = [];
 
-  // Beats run in parallel, not sequentially — 10 beats x (a Claude call
-  // with multiple web_search rounds + per-candidate URL validation) run
-  // one after another blows well past the Edge Function platform's
-  // wall-clock/compute limit (hit in practice as WORKER_RESOURCE_LIMIT).
-  // Running them concurrently keeps total wall time close to the single
-  // slowest beat instead of the sum of all ten. Candidate persistence
-  // within a beat is parallelized the same way, since URL-liveness
-  // validation (a HEAD/GET per candidate) is the other slow part.
-  const beatResults = await Promise.allSettled(
-    beats.map(async (beat) => {
-      const { candidates, allowedUrls, usage } = await searchBeat(beat);
-      const persistResults = await Promise.allSettled(
-        candidates.map((candidate) => persistCandidate(supabase, candidate, allowedUrls))
-      );
-      const newCount = persistResults.filter((r) => r.status === "fulfilled" && r.value).length;
-      return { foundCount: candidates.length, newCount, usage };
-    })
-  );
+  // Beats run with bounded concurrency, not all-at-once and not strictly
+  // sequential. Firing all 10 web_search-enabled Claude calls
+  // simultaneously (tried first) left several stragglers still running
+  // past a 60s per-call cutoff — 10-way concurrency seems to slow each
+  // individual call down (queuing on Anthropic's side, or Supabase's
+  // outbound connection limits), not just add load. Small batches keep
+  // wall time well under sequential while avoiding that cliff.
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < beats.length; i += BATCH_SIZE) {
+    const batch = beats.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (beat) => {
+        const { candidates, allowedUrls, usage } = await searchBeat(beat);
+        const persistResults = await Promise.allSettled(
+          candidates.map((candidate) => persistCandidate(supabase, candidate, allowedUrls))
+        );
+        const newCount = persistResults.filter((r) => r.status === "fulfilled" && r.value).length;
+        return { foundCount: candidates.length, newCount, usage };
+      })
+    );
 
-  for (const result of beatResults) {
-    if (result.status === "fulfilled") {
-      storiesFound += result.value.foundCount;
-      storiesNew += result.value.newCount;
-      inputTokens += result.value.usage.input_tokens;
-      outputTokens += result.value.usage.output_tokens;
-    } else {
-      beatErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        storiesFound += result.value.foundCount;
+        storiesNew += result.value.newCount;
+        inputTokens += result.value.usage.input_tokens;
+        outputTokens += result.value.usage.output_tokens;
+      } else {
+        beatErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+      }
     }
   }
 
@@ -181,7 +184,7 @@ If nothing genuinely notable happened on this beat in the window, return an empt
   // produced WORKER_RESOURCE_LIMIT on first live runs). Fail this one
   // beat fast instead so Promise.allSettled can still return the rest.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60_000);
+  const timeout = setTimeout(() => controller.abort(), 100_000);
   let resp: Response;
   try {
     resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -194,11 +197,12 @@ If nothing genuinely notable happened on this beat in the window, return an empt
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 4096,
-        // Kept deliberately tight: this is straightforward extraction, not
-        // multi-step reasoning, and both knobs directly bound wall-clock
-        // time per beat — a real factor on Supabase Edge Functions' worker
-        // resource ceiling when several beats run concurrently.
-        output_config: { effort: "low" },
+        // "low" effort was tried here and measurably hurt result quality —
+        // beats that returned within the time budget mostly came back with
+        // zero candidates, i.e. Claude wasn't researching enough to find
+        // real stories. Leaving effort at its default and instead bounding
+        // cost/time via max_uses and batched (not all-10-at-once) beat
+        // concurrency, per the comment above the caller.
         tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
         messages: [{ role: "user", content: prompt }],
       }),
