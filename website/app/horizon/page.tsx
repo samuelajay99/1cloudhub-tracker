@@ -1,18 +1,15 @@
 'use client';
 
-import { HorizonHeaderBrand, HorizonMark, FooterBrand } from '../../components/Brand';
+import { HorizonHeaderBrand, FooterBrand } from '../../components/Brand';
 import HorizonGate from '../../components/horizon/HorizonGate';
+import HorizonHome from '../../components/horizon/HorizonHome';
 import { ArrowLeft } from 'lucide-react';
 
 export default function HorizonPage() {
-  return <HorizonGate>{() => <ComingSoon />}</HorizonGate>;
+  return <HorizonGate>{({ userId }) => <HorizonPageInner userId={userId} />}</HorizonGate>;
 }
 
-// Phase 0 placeholder — access control, branding, and the marketplace
-// listing are real; onboarding + the brief itself land in Phase 1. This is
-// deliberately a real, finished-feeling screen rather than a blank page,
-// so an approved user isn't met with nothing.
-function ComingSoon() {
+function HorizonPageInner({ userId }: { userId: string }) {
   return (
     <div className="ch-page">
       <header className="ch-header">
@@ -24,28 +21,9 @@ function ComingSoon() {
         </div>
       </header>
 
-      <div className="ch-status-page" style={{ minHeight: 'calc(100vh - 140px)' }}>
-        <div className="ch-shell-narrow" style={{ position: 'relative', zIndex: 2 }}>
-          <div className="ch-card pad-lg" style={{ textAlign: 'center' }}>
-            <div style={{ margin: '0 auto 20px', display: 'flex', justifyContent: 'center' }}>
-              <HorizonMark size={64} />
-            </div>
-            <h1 style={{ fontSize: 'var(--text-xl)' }}>Horizon is on its way</h1>
-            <p
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-secondary)',
-                margin: '10px 0 4px',
-                lineHeight: 'var(--leading-normal)',
-              }}
-            >
-              A personalised daily intelligence brief — the 10-14 things worth knowing today, prioritised for your
-              role, industry and market, with a plain-language reason each one matters to you.
-            </p>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 16 }}>
-              You have access. Onboarding and your first brief are coming in the next build.
-            </p>
-          </div>
+      <div style={{ minHeight: 'calc(100vh - 140px)', background: 'var(--surface-card-tint)', padding: '48px 0' }}>
+        <div className="ch-shell-narrow" style={{ maxWidth: 640 }}>
+          <HorizonHome userId={userId} />
         </div>
       </div>
 

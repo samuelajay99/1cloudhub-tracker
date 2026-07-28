@@ -552,3 +552,137 @@ button { font-family: inherit; }
   font-size: 11.5px; font-weight: 600; cursor: pointer; transition: var(--transition-base);
 }
 .ch-copy-btn:hover { border-color: var(--blue-200); background: var(--blue-50); }
+
+/* ==========================================================================
+   Wizard / chip selectors — Horizon onboarding, reusable anywhere a
+   multi/single-select chip picker or a step progress bar is needed.
+   ========================================================================== */
+
+.ch-progress-track {
+  width: 100%; height: 4px; border-radius: var(--radius-pill);
+  background: var(--gray-200); overflow: hidden; margin-bottom: var(--space-6);
+}
+.ch-progress-fill {
+  height: 100%; background: var(--gradient-accent); border-radius: var(--radius-pill);
+  transition: width 360ms var(--ease-soft);
+}
+.ch-wizard-step {
+  font-family: var(--font-mono); font-size: var(--type-kicker-size); font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-kicker); text-transform: uppercase; color: var(--text-kicker);
+  margin-bottom: var(--space-3);
+}
+
+.ch-chip-group { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ch-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: var(--radius-pill);
+  border: var(--border-width) solid var(--border-default); background: var(--white);
+  color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--weight-medium);
+  cursor: pointer; transition: var(--transition-base); user-select: none;
+}
+.ch-chip:hover { border-color: var(--blue-200); background: var(--blue-50); }
+.ch-chip.selected {
+  background: var(--blue-600); border-color: var(--blue-600); color: var(--white); box-shadow: var(--shadow-sm);
+}
+.ch-chip.selected:hover { background: var(--blue-700); border-color: var(--blue-700); }
+
+.ch-option-card {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: var(--space-4) var(--space-5); border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border-default); background: var(--white);
+  cursor: pointer; transition: var(--transition-base); width: 100%;
+}
+.ch-option-card:hover { border-color: var(--blue-200); background: var(--blue-50); }
+.ch-option-card.selected { border-color: var(--blue-600); background: var(--blue-50); box-shadow: var(--focus-ring); }
+.ch-option-card .title { font-weight: var(--weight-semibold); font-size: var(--text-md); color: var(--text-primary); }
+.ch-option-card .sub { font-size: var(--text-xs); color: var(--text-secondary); }
+
+.ch-autocomplete { position: relative; }
+.ch-autocomplete-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+  background: var(--white); border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-md); max-height: 240px; overflow-y: auto;
+}
+.ch-autocomplete-list button {
+  display: block; width: 100%; text-align: left; padding: 10px 14px; border: none;
+  background: transparent; cursor: pointer; font-size: var(--text-sm); color: var(--text-primary);
+  font-family: inherit; transition: var(--transition-color);
+}
+.ch-autocomplete-list button:hover { background: var(--blue-50); }
+
+@keyframes ch-spin-slow-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ch-spin-slow { animation: ch-spin-slow-kf 2.2s linear infinite; }
+
+/* ==========================================================================
+   Horizon brief — sections, item cards, lens chips.
+   ========================================================================== */
+
+.ch-brief-section { margin-bottom: var(--space-9); }
+.ch-brief-section-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: var(--space-4);
+}
+.ch-brief-section-header .count {
+  font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted);
+}
+.ch-brief-section.must-know .ch-kicker { color: var(--red-600); }
+.ch-brief-section.must-know .ch-brief-section-header h2 { color: var(--red-600); }
+
+.ch-brief-item {
+  background: var(--surface-card); border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-4);
+  transition: var(--transition-base);
+}
+.ch-brief-item.is-read { opacity: 0.72; }
+.ch-brief-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.ch-brief-item h3 { font-size: var(--text-lg); margin-bottom: 8px; }
+.ch-brief-item .summary { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-normal); margin-bottom: 14px; }
+
+.ch-why-matters {
+  display: flex; gap: 10px; padding: 12px 14px; margin-bottom: 14px;
+  background: var(--orange-100); border-radius: var(--radius-sm);
+  box-shadow: inset 3px 0 0 var(--orange-500);
+}
+.ch-why-matters .icon { flex: none; color: var(--orange-600); margin-top: 1px; }
+.ch-why-matters .label {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-kicker); text-transform: uppercase; color: var(--orange-600);
+  display: block; margin-bottom: 3px;
+}
+.ch-why-matters p { font-size: var(--text-sm); color: var(--navy-700); line-height: var(--leading-normal); font-weight: var(--weight-medium); }
+
+.ch-lens-chip {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--radius-pill);
+  font-size: var(--text-2xs); font-weight: var(--weight-semibold);
+}
+.ch-lens-chip.lens-global { background: var(--blue-100); color: var(--blue-700); }
+.ch-lens-chip.lens-national { background: var(--sky-100); color: var(--sky-600); }
+.ch-lens-chip.lens-local { background: var(--green-100); color: var(--green-600); }
+.ch-lens-chip.lens-your_world { background: var(--navy-700); color: var(--white); }
+.ch-lens-chip.lens-your_craft { background: var(--gray-100); color: var(--text-secondary); }
+
+.ch-credibility-badge {
+  display: inline-flex; align-items: center; gap: 3px; font-size: var(--text-2xs);
+  color: var(--text-muted); font-weight: var(--weight-medium);
+}
+
+.ch-brief-item-actions { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.ch-vote-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border-radius: var(--radius-sm); border: var(--border-width) solid var(--border-default);
+  background: var(--white); color: var(--text-secondary); cursor: pointer; transition: var(--transition-base);
+}
+.ch-vote-btn:hover { border-color: var(--blue-200); background: var(--blue-50); color: var(--blue-600); }
+.ch-vote-btn.active-up { background: var(--green-100); border-color: var(--green-500); color: var(--green-600); }
+.ch-vote-btn.active-down { background: var(--red-100); border-color: var(--red-500); color: var(--red-600); }
+.ch-vote-btn.active-save { background: var(--orange-100); border-color: var(--orange-500); color: var(--orange-600); }
+
+.ch-reason-picker {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px;
+  border-top: var(--border-width) dashed var(--border-default);
+}
+.ch-reason-chip {
+  font-size: var(--text-2xs); padding: 5px 10px; border-radius: var(--radius-pill);
+  border: var(--border-width) solid var(--border-default); background: var(--white);
+  color: var(--text-secondary); cursor: pointer; transition: var(--transition-base);
+}
+.ch-reason-chip:hover { border-color: var(--red-500); color: var(--red-600); background: var(--red-100); }
