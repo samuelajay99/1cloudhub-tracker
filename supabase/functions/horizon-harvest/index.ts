@@ -101,19 +101,33 @@ Deno.serve(async (req) => {
   let outputTokens = 0;
   const beatErrors: string[] = [];
 
-  for (const beat of beats) {
-    try {
+  // Beats run in parallel, not sequentially — 10 beats x (a Claude call
+  // with multiple web_search rounds + per-candidate URL validation) run
+  // one after another blows well past the Edge Function platform's
+  // wall-clock/compute limit (hit in practice as WORKER_RESOURCE_LIMIT).
+  // Running them concurrently keeps total wall time close to the single
+  // slowest beat instead of the sum of all ten. Candidate persistence
+  // within a beat is parallelized the same way, since URL-liveness
+  // validation (a HEAD/GET per candidate) is the other slow part.
+  const beatResults = await Promise.allSettled(
+    beats.map(async (beat) => {
       const { candidates, allowedUrls, usage } = await searchBeat(beat);
-      storiesFound += candidates.length;
-      inputTokens += usage.input_tokens;
-      outputTokens += usage.output_tokens;
+      const persistResults = await Promise.allSettled(
+        candidates.map((candidate) => persistCandidate(supabase, candidate, allowedUrls))
+      );
+      const newCount = persistResults.filter((r) => r.status === "fulfilled" && r.value).length;
+      return { foundCount: candidates.length, newCount, usage };
+    })
+  );
 
-      for (const candidate of candidates) {
-        const inserted = await persistCandidate(supabase, candidate, allowedUrls);
-        if (inserted) storiesNew++;
-      }
-    } catch (err) {
-      beatErrors.push(`${beat}: ${err instanceof Error ? err.message : String(err)}`);
+  for (const result of beatResults) {
+    if (result.status === "fulfilled") {
+      storiesFound += result.value.foundCount;
+      storiesNew += result.value.newCount;
+      inputTokens += result.value.usage.input_tokens;
+      outputTokens += result.value.usage.output_tokens;
+    } else {
+      beatErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
     }
   }
 
