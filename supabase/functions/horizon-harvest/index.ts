@@ -175,20 +175,38 @@ After searching, respond with ONLY a JSON array (no prose before or after, no ma
 
 If nothing genuinely notable happened on this beat in the window, return an empty array [].`;
 
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 4096,
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }],
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  // Unlike validateUrl's HEAD/GET checks, this call previously had no
+  // timeout — if the Anthropic request ever stalled, the whole function
+  // just hung until the platform eventually killed it (this is what
+  // produced WORKER_RESOURCE_LIMIT on first live runs). Fail this one
+  // beat fast instead so Promise.allSettled can still return the rest.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+  let resp: Response;
+  try {
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4096,
+        // Kept deliberately tight: this is straightforward extraction, not
+        // multi-step reasoning, and both knobs directly bound wall-clock
+        // time per beat — a real factor on Supabase Edge Functions' worker
+        // resource ceiling when several beats run concurrently.
+        output_config: { effort: "low" },
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!resp.ok) {
     const errText = await resp.text();

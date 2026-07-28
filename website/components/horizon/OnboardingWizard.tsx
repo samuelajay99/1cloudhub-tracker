@@ -217,7 +217,18 @@ export default function OnboardingWizard({ userId }: { userId: string }) {
 
     const { error: fnError } = await supabase.functions.invoke('horizon-brief', { body: {} });
     if (fnError) {
-      setError('Could not start your first brief — you can still open Horizon and generate it from there.');
+      let detail = fnError.message;
+      const context = (fnError as { context?: Response }).context;
+      if (context && typeof context.text === 'function') {
+        try {
+          const parsed = JSON.parse(await context.clone().text());
+          if (parsed?.error) detail = parsed.error;
+        } catch {
+          // fall back to fnError.message
+        }
+      }
+      console.error('horizon-brief invoke failed:', detail);
+      setError(`Could not start your first brief (${detail}) — you can still open Horizon and generate it from there.`);
       setGenerating(false);
       return;
     }

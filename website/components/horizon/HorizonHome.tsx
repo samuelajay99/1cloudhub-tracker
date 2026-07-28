@@ -24,6 +24,7 @@ export default function HorizonHome({ userId }: { userId: string }) {
   const [today, setToday] = useState<BriefRow | null>(null);
   const [fallback, setFallback] = useState<BriefRow | null>(null);
   const [starting, setStarting] = useState(false);
+  const [invokeError, setInvokeError] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -97,11 +98,30 @@ export default function HorizonHome({ userId }: { userId: string }) {
 
   async function generateToday(force = false) {
     setStarting(true);
-    const { error } = await supabase.functions.invoke('horizon-brief', { body: force ? { force: true } : {} });
+    setInvokeError('');
+    const { data, error } = await supabase.functions.invoke('horizon-brief', { body: force ? { force: true } : {} });
     setStarting(false);
-    if (!error) {
-      await load();
+    if (error) {
+      // supabase-js's FunctionsHttpError carries the real response on
+      // `.context` — read the body text so a 4xx/5xx from horizon-brief
+      // (e.g. "Horizon profile not found") is visible instead of a bare
+      // "Edge Function returned a non-2xx status code".
+      let detail = error.message;
+      const context = (error as { context?: Response }).context;
+      if (context && typeof context.text === 'function') {
+        try {
+          const bodyText = await context.clone().text();
+          const parsed = JSON.parse(bodyText);
+          if (parsed?.error) detail = parsed.error;
+        } catch {
+          // fall back to error.message
+        }
+      }
+      console.error('horizon-brief invoke failed:', detail, data);
+      setInvokeError(detail);
+      return;
     }
+    await load();
   }
 
   if (loading) {
@@ -153,6 +173,11 @@ export default function HorizonHome({ userId }: { userId: string }) {
             <button className="ch-btn ch-btn-primary" onClick={() => generateToday(false)} disabled={starting}>
               {starting ? 'Starting…' : "Generate today's brief"}
             </button>
+            {invokeError && (
+              <p style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--red-600)', background: 'var(--red-100)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', marginTop: 14, wordBreak: 'break-word' }}>
+                {invokeError}
+              </p>
+            )}
           </div>
           {fallback && (
             <>
