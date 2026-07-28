@@ -10,12 +10,17 @@
 // Secrets needed:  ANTHROPIC_API_KEY (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 // are injected automatically by the Edge Function runtime).
 //
-// Trigger: meant for pg_cron (3-4x/day per BRD HZ-HV-01), authenticated
-// with the service-role key as a shared secret since there is no human
-// caller to verify against `profiles`. Until horizon-scheduler + pg_cron
-// land in Phase 2, invoke manually:
+// Trigger: meant for pg_cron (3-4x/day per BRD HZ-HV-01). No human caller
+// to verify against `profiles`, so this checks the caller presented a
+// service-role token instead. It does NOT re-verify the JWT signature
+// itself — Supabase's Edge Function gateway already rejects any request
+// whose Authorization bearer token isn't a validly-signed JWT for this
+// project before the request ever reaches this code (that's the default
+// `verify_jwt` behaviour for a deployed function), so decoding the
+// payload here to check `role` is safe, not just convenient. Until
+// horizon-scheduler + pg_cron land in Phase 2, invoke manually:
 //   curl -X POST https://<project>.supabase.co/functions/v1/horizon-harvest \
-//     -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+//     -H "Authorization: Bearer <service_role key from Settings -> API>"
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { CORS_HEADERS, json, canonicalizeUrl, hashUrl } from "../_shared/horizon.ts";
@@ -23,6 +28,20 @@ import { CORS_HEADERS, json, canonicalizeUrl, hashUrl } from "../_shared/horizon
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Decodes (does not re-verify — see the comment above) the JWT payload to
+// read its `role` claim.
+function decodeJwtRole(token: string): string | null {
+  try {
+    const payloadSegment = token.split(".")[1];
+    const padded = payloadSegment.padEnd(payloadSegment.length + ((4 - (payloadSegment.length % 4)) % 4), "=");
+    const json = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json);
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
 
 // Broad professional beats covering Horizon's three personas (BRD §2: IT
 // IC, leader, client-facing professional). Phase 2 replaces this with the
@@ -62,7 +81,7 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (token !== SUPABASE_SERVICE_ROLE_KEY) {
+  if (decodeJwtRole(token) !== "service_role") {
     return json({ error: "unauthorized — this function is for scheduled/service invocation only" }, 401);
   }
 
