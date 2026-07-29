@@ -17,7 +17,7 @@ export default function HomePage() {
   const [email, setEmail] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [formEmail, setFormEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -78,6 +78,24 @@ export default function HomePage() {
     }
     await evaluateSession();
     setBusy(false);
+  }
+
+  async function handleResetRequest() {
+    if (!formEmail) {
+      showToast('Enter your account email.', 'error');
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message, 'error');
+      return;
+    }
+    showToast("If that email has an account, we've sent a reset link.", 'success');
+    setMode('signin');
   }
 
   async function handleSignOut() {
@@ -147,9 +165,15 @@ export default function HomePage() {
           <section id="auth" className="ch-shell-narrow" style={{ marginTop: -68, marginBottom: 88, position: 'relative', zIndex: 5 }}>
             <div className="ch-card pad-lg" style={{ boxShadow: 'var(--shadow-lg)' }}>
               <OrbitBrand />
-              <h2 style={{ fontSize: 'var(--text-xl)' }}>{mode === 'signin' ? 'Sign in' : 'Request access'}</h2>
+              <h2 style={{ fontSize: 'var(--text-xl)' }}>
+                {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Request access' : 'Reset your password'}
+              </h2>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '6px 0 18px' }}>
-                {mode === 'signin' ? 'Sign in with your account.' : 'Create an account, then wait for it to be approved.'}
+                {mode === 'signin'
+                  ? 'Sign in with your account.'
+                  : mode === 'signup'
+                    ? 'Create an account, then wait for it to be approved.'
+                    : "Enter your account email and we'll send you a reset link."}
               </p>
               <input
                 className="ch-field"
@@ -157,29 +181,65 @@ export default function HomePage() {
                 placeholder="you@company.com"
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && mode === 'reset' && handleResetRequest()}
               />
-              <input
-                className="ch-field"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAuthSubmit()}
-              />
-              <button className="ch-btn ch-btn-primary full" disabled={busy} onClick={handleAuthSubmit} style={{ marginTop: 4 }}>
-                {mode === 'signin' ? 'Sign in' : 'Request access'}
+              {mode !== 'reset' && (
+                <input
+                  className="ch-field"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAuthSubmit()}
+                />
+              )}
+              {mode === 'signin' && (
+                <p style={{ textAlign: 'right', marginTop: -8, marginBottom: 14 }}>
+                  <a
+                    href="#"
+                    style={{ fontSize: 'var(--text-xs)' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMode('reset');
+                    }}
+                  >
+                    Forgot password?
+                  </a>
+                </p>
+              )}
+              <button
+                className="ch-btn ch-btn-primary full"
+                disabled={busy}
+                onClick={mode === 'reset' ? handleResetRequest : handleAuthSubmit}
+                style={{ marginTop: 4 }}
+              >
+                {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Request access' : 'Send reset link'}
               </button>
               <p className="ch-toggle-line">
-                {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setMode(mode === 'signin' ? 'signup' : 'signin');
-                  }}
-                >
-                  {mode === 'signin' ? 'Request access' : 'Sign in'}
-                </a>
+                {mode === 'reset' ? (
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMode('signin');
+                    }}
+                  >
+                    Back to sign in
+                  </a>
+                ) : (
+                  <>
+                    {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setMode(mode === 'signin' ? 'signup' : 'signin');
+                      }}
+                    >
+                      {mode === 'signin' ? 'Request access' : 'Sign in'}
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </section>
