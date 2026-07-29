@@ -378,8 +378,13 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
+      // 10-14 written items (each with its own "why this matters" line)
+      // plus the JSON structure around them routinely needs more than
+      // 4096 tokens — a real run hit that ceiling exactly (output_tokens
+      // === max_tokens) and got a silently truncated, unparseable
+      // response back. Sized with real headroom instead of guessing again.
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -391,6 +396,16 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
 
   const data = await resp.json();
   const usage = { input_tokens: data?.usage?.input_tokens ?? 0, output_tokens: data?.usage?.output_tokens ?? 0 };
+
+  // A truncated response (hit max_tokens mid-JSON) must fail loudly and
+  // retry, not fall through to the parser below — naive bracket-matching
+  // on incomplete JSON can accidentally "succeed" with an empty/garbage
+  // result, which is exactly what silently produced an empty-but-"ready"
+  // brief on a real run. Treat truncation as a hard error.
+  if (data?.stop_reason === "max_tokens") {
+    throw new Error(`Claude's brief-selection response was truncated (hit max_tokens=${data?.usage?.output_tokens ?? "?"})`);
+  }
+
   const textBlock = (data?.content ?? []).find((b: { type: string }) => b.type === "text");
   const text: string = textBlock?.text ?? "{}";
   const start = text.indexOf("{");
