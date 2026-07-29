@@ -250,6 +250,26 @@ async function generateBrief(
   const isQuietDay = scored.length < 6;
 
   const targetSlots = weekendAdjustedSlotTarget(profile, now);
+
+  // weekend_mode "off" resolves to 0 slots on a weekend — that means "no
+  // brief today," not "unset, fall back to a default." Handle it before
+  // any further work rather than let a later `targetSlots || 12`-style
+  // fallback silently treat the deliberate 0 as missing input.
+  if (targetSlots === 0) {
+    await supabase
+      .from("horizon_briefs")
+      .update({
+        status: "ready",
+        sixty_second: "Weekend mode is set to off — no brief today. Back to normal on the next weekday.",
+        item_count: 0,
+        is_quiet_day: false,
+        model: MODEL,
+        generated_at: now.toISOString(),
+      })
+      .eq("id", briefId);
+    return { item_count: 0, is_quiet_day: false };
+  }
+
   const diversityBudget = Math.max(1, RANKING_CONFIG.topCandidateCount - Math.round(targetSlots * RANKING_CONFIG.epsilon));
   const diversityPicks = applyDiversityConstraints(scored, diversityBudget);
   const explorationPicks = selectExplorationCandidates(scored, diversityPicks, targetSlots);
@@ -270,8 +290,13 @@ async function generateBrief(
     return { item_count: 0, is_quiet_day: true };
   }
 
+  // targetSlots (already computed above from weekend_mode/brief_length) is
+  // the real cost lever, not topic count: it caps exactly how many items
+  // — and therefore how much Claude writes — this brief is allowed to
+  // contain, enforced both in the prompt and again on the parsed result.
+  const maxItems = Math.max(6, Math.min(16, targetSlots));
   const explorationIds = new Set(explorationPicks.map((c) => c.story.id));
-  const claudeResult = await withRetries(() => callClaudeForSelection(profile, candidatesForClaude, explorationIds));
+  const claudeResult = await withRetries(() => callClaudeForSelection(profile, candidatesForClaude, explorationIds, maxItems));
 
   const itemsToInsert = claudeResult.items.map((item, idx) => ({
     brief_id: briefId,
@@ -329,7 +354,8 @@ async function callClaudeForSelection(
     country: string | null; city: string | null; goals: string[]; brief_length: string;
   },
   candidates: ScoredCandidate[],
-  explorationIds: Set<string>
+  explorationIds: Set<string>,
+  maxItems: number
 ): Promise<{ items: ClaudeBriefItem[]; sixty_second: string; must_know_count: number; usage: { input_tokens: number; output_tokens: number } }> {
   const candidateBlock = candidates
     .map((c) => {
@@ -355,7 +381,7 @@ ${profileBlock}
 CANDIDATE STORIES (already deterministically scored and diversity-filtered — your job is judgement and writing, not re-ranking):
 ${candidateBlock}
 
-Select 10-14 of these candidates (fewer is fine on a quiet day) and produce a brief. Rules:
+Select AT MOST ${maxItems} of these candidates — fewer is fine, and expected on a quiet day, but never more than ${maxItems} — and produce a brief. Rules:
 - Sections: must_know (0-3), worth_knowing (4-6), radar (2-3), deep_dive (1), wildcard (1, must be one of the candidates marked EXPLORATION if any exist), water_cooler (0-1).
 - must_know is a SEPARATE judgement, not just top scores: "would a competent peer assume this reader already saw this?" It is completely normal and often correct for must_know to be empty. Never invent urgency to fill it.
 - Every item gets exactly one lens: global, national, local, your_world (their company/region/clients), or your_craft (their specific role/skills).
@@ -378,13 +404,13 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      // 10-14 written items (each with its own "why this matters" line)
-      // plus the JSON structure around them routinely needs more than
-      // 4096 tokens — a real run hit that ceiling exactly (output_tokens
-      // === max_tokens) and got a silently truncated, unparseable
-      // response back. Sized with real headroom instead of guessing again.
+      // Scales with maxItems (the real cap on brief size) rather than a
+      // flat guess: enough headroom per item to never truncate — a real
+      // run previously hit its ceiling exactly (output_tokens ===
+      // max_tokens) and silently produced an unparseable response — while
+      // a "short" brief doesn't reserve room it'll never use.
       model: MODEL,
-      max_tokens: 8192,
+      max_tokens: Math.min(8192, maxItems * 450 + 1200),
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -420,9 +446,11 @@ Respond with ONLY a JSON object (no prose, no markdown fences):
   }
 
   const candidateIds = new Set(candidates.map((c) => c.story.id));
-  const items = (parsed.items ?? []).filter(
-    (item) => item && candidateIds.has(item.story_id) && item.why_it_matters && item.section && item.lens
-  );
+  const items = (parsed.items ?? [])
+    .filter((item) => item && candidateIds.has(item.story_id) && item.why_it_matters && item.section && item.lens)
+    // Enforced in code, not just asked for in the prompt — the model
+    // following instructions isn't a cap, this is.
+    .slice(0, maxItems);
   const mustKnowCount = items.filter((i) => i.section === "must_know").length;
 
   return {
