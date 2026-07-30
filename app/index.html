@@ -156,7 +156,7 @@
   .empty-sidebar { font-size: 11.5px; color: var(--faint); padding: 8px; }
 
   .note-editor {
-    flex: 1; min-height: 430px; padding: 24px;
+    flex: 1; min-height: 620px; padding: 24px;
     background: var(--card); backdrop-filter: var(--glass-blur);
     border: 1px solid rgba(255, 255, 255, 0.65); border-radius: var(--r-xl);
     box-shadow: var(--shadow-1);
@@ -168,17 +168,39 @@
   }
   .note-editor input.title-input:focus { outline: none; }
   .note-editor .meta-row { font-size: 10.5px; color: var(--faint); margin-bottom: 14px; }
-  .note-editor textarea.body-input {
-    width: 100%; min-height: 280px; border: none; background: transparent;
-    font-family: inherit; font-size: 13.5px; line-height: 1.65; resize: vertical; color: var(--ink);
+
+  /* ---------- Rich note body (Quill) ---------- */
+  .quill-wrapper { display: flex; flex-direction: column; }
+  .quill-wrapper .ql-toolbar.ql-snow {
+    border: 1px solid var(--line-strong); border-bottom: none;
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    background: rgba(247, 250, 253, 0.85); padding: 8px 10px;
+    font-family: inherit;
   }
-  .note-editor textarea.body-input:focus { outline: none; }
+  .quill-wrapper .ql-toolbar .ql-stroke { stroke: var(--muted); }
+  .quill-wrapper .ql-toolbar .ql-fill { fill: var(--muted); }
+  .quill-wrapper .ql-toolbar .ql-picker { color: var(--muted); }
+  .quill-wrapper .ql-toolbar button:hover .ql-stroke,
+  .quill-wrapper .ql-toolbar button.ql-active .ql-stroke,
+  .quill-wrapper .ql-toolbar .ql-picker-label:hover .ql-stroke { stroke: var(--blue); }
+  .quill-wrapper .ql-toolbar button:hover .ql-fill,
+  .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: var(--blue); }
+  .quill-wrapper .ql-toolbar button.ql-active,
+  .quill-wrapper .ql-toolbar .ql-picker-label.ql-active { background: rgba(232, 241, 250, 0.9); border-radius: 6px; }
+  .quill-wrapper .ql-container.ql-snow {
+    border: 1px solid var(--line-strong); border-radius: 0 0 var(--r-md) var(--r-md);
+    font-family: inherit;
+  }
+  .quill-wrapper .ql-editor {
+    min-height: 480px; font-size: 13.5px; line-height: 1.65; color: var(--ink); padding: 16px;
+  }
+  .quill-wrapper .ql-editor.ql-blank::before { color: var(--faint); font-style: normal; left: 16px; right: 16px; }
 
   .editor-actions {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
     border-top: 1px solid var(--line); padding-top: 14px; margin-top: 12px;
   }
-  .editor-actions .left-actions { display: flex; gap: 9px; }
+  .editor-actions .left-actions { display: flex; gap: 9px; flex-wrap: wrap; }
 
   /* ---------- Buttons ---------- */
   .btn {
@@ -242,8 +264,6 @@
   .attach-filename { font-size: 11px; color: var(--muted); }
   .transcript-or { font-size: 10.5px; color: var(--faint); }
 
-  .split-panes { display: flex; gap: 18px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
-  .split-panes .pane { flex: 1; min-width: 0; }
   .minutes-pane {
     background: rgba(250, 251, 253, 0.9); border: 1px solid var(--line); border-radius: var(--r-md);
     padding: 13px; font-size: 12px; line-height: 1.65; color: var(--ink);
@@ -437,6 +457,7 @@
     max-height: 86vh; overflow-y: auto;
     box-shadow: 0 24px 70px rgba(11, 25, 48, 0.35);
   }
+  .modal.modal-wide { width: 640px; }
   .modal h3 { margin: 0 0 6px; color: var(--navy); font-size: 15.5px; font-family: 'Space Grotesk', inherit; }
   .modal p { font-size: 12px; color: var(--muted); margin: 0 0 14px; line-height: 1.55; }
   .modal input[type=password], .modal input[type=text], .modal textarea, .modal select {
@@ -584,6 +605,7 @@
   #authStatus.status-line { color: var(--ds-muted); }
 
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css">
 </head>
 <body>
   <div id="authGate" class="auth-gate">
@@ -791,6 +813,32 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="noteTasksModal">
+    <div class="modal modal-wide">
+      <h3>Tasks from this note</h3>
+      <div id="noteTasksModalBody"></div>
+      <div class="modal-actions">
+        <span></span>
+        <div class="right-group">
+          <button class="btn btn-secondary" id="closeNoteTasksModalBtn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="minutesModal">
+    <div class="modal modal-wide">
+      <h3>Meeting minutes</h3>
+      <div id="minutesModalBody"></div>
+      <div class="modal-actions">
+        <span></span>
+        <div class="right-group">
+          <button class="btn btn-secondary" id="closeMinutesModalBtn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="undoToast">
     <span id="toastMsg"></span>
     <button id="toastUndoBtn">Undo</button>
@@ -798,6 +846,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -816,6 +865,9 @@ const PRIORITY_COLOR = { High: '#F07814', Medium: '#1899C2', Low: '#8ED4EE' };
 const STATUSES = ['Open', 'In Progress', 'Waiting on Others', 'Done'];
 
 let selectedNoteId = null;
+let quill = null;              // singleton rich-text editor instance for the note body, lives for the app's lifetime
+let quillEditingNoteId = null; // id of the note currently loaded into quill.root; null when no note loaded
+let quillSaveTimer = null;     // debounce timer for quill's own text-change autosave
 let showTrash = false;
 let personFilterVal = '';
 let searchVal = '';
@@ -980,6 +1032,87 @@ function sanitizeNoteText(s) {
     .replace(/<[^>]+>/g, '')
     .replace(/\n{3,}/g, '\n\n');
 }
+
+// ---------- Rich note body (Quill) ----------
+// note.body is allowed to hold real formatting (bold/lists/checklists) as
+// sanitized HTML. This is a parallel pipeline to sanitizeNoteText above,
+// which keeps its original job for transcript/task fields/quick-add — only
+// the note body's shape changes.
+const NOTE_HTML_ALLOWED_TAGS = new Set(['P','BR','STRONG','B','EM','I','U','S','STRIKE','OL','UL','LI','H1','H2','BLOCKQUOTE','A','SPAN']);
+const NOTE_HTML_ALLOWED_ATTRS = { A: ['href','target','rel'], LI: ['data-list'], SPAN: ['class'] };
+// These never make sense to unwrap-and-keep-text (e.g. a <script> tag's
+// text content is code, not note content) — drop the whole subtree instead
+// of promoting its children the way an unrecognized-but-harmless tag would be.
+const NOTE_HTML_DROP_TAGS = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT']);
+
+function sanitizeHtmlNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) return;
+  if (node.nodeType !== Node.ELEMENT_NODE) { node.remove(); return; }
+  const tag = node.tagName;
+  if (NOTE_HTML_DROP_TAGS.has(tag)) { node.remove(); return; }
+  Array.from(node.childNodes).forEach(sanitizeHtmlNode); // clean descendants first
+  if (!NOTE_HTML_ALLOWED_TAGS.has(tag)) {
+    const parent = node.parentNode;
+    if (!parent) return;
+    while (node.firstChild) parent.insertBefore(node.firstChild, node);
+    parent.removeChild(node);
+    return;
+  }
+  const allowed = NOTE_HTML_ALLOWED_ATTRS[tag] || [];
+  Array.from(node.attributes).forEach(attr => { if (!allowed.includes(attr.name.toLowerCase())) node.removeAttribute(attr.name); });
+  if (tag === 'A') {
+    const href = node.getAttribute('href') || '';
+    if (!/^https?:\/\//i.test(href) && !/^mailto:/i.test(href)) node.removeAttribute('href');
+    else { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
+  }
+}
+// Allowlist sanitizer for the rich note body. DOMParser output is inert
+// (no script execution, no image network fetches), so it's safe to run
+// this on arbitrary pasted/adversarial HTML before it's ever persisted.
+function sanitizeNoteHtml(html) {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  Array.from(doc.body.childNodes).forEach(sanitizeHtmlNode);
+  return doc.body.innerHTML;
+}
+// Plain-text projection of the rich body, for Claude prompts and the
+// sidebar preview only — never for DOM insertion of live HTML. Checklist
+// items keep their checked/unchecked state as [x]/[ ] instead of being
+// silently lost the way a naive tag-strip would lose it.
+function htmlToPlainText(html) {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const lines = [];
+  const walkBlock = (el) => {
+    const tag = el.tagName;
+    if (tag === 'UL' || tag === 'OL') {
+      Array.from(el.children).forEach(li => {
+        const listType = li.getAttribute('data-list');
+        const prefix = listType === 'checked' ? '[x] ' : listType === 'unchecked' ? '[ ] ' : '- ';
+        lines.push(prefix + li.textContent.trim());
+      });
+    } else if (tag === 'BLOCKQUOTE') {
+      lines.push('> ' + el.textContent.trim());
+    } else {
+      const t = el.textContent.trim();
+      if (t) lines.push(t);
+    }
+  };
+  Array.from(doc.body.children).forEach(walkBlock);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+// A note body is "rich" (new HTML format) once it starts with a real block
+// tag. Legacy notes (plain text, or already tag-stripped by the old
+// sanitizeNoteText pipeline) fail this test and get converted once.
+function isRichNoteBody(html) { return /^\s*<(p|h[1-3]|ul|ol|blockquote)[\s>]/i.test(html || ''); }
+function migrateNoteBodyToHtml(note) {
+  const body = note.body || '';
+  if (isRichNoteBody(body)) return false;
+  const escaped = escapeHtml(body); // pure string escaping — never innerText, see app/CLAUDE.md lesson #1
+  note.body = escaped.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('') || '<p><br></p>';
+  return true;
+}
+
 function simpleHash(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
@@ -1018,6 +1151,12 @@ document.getElementById('gearBtn').addEventListener('click', () => {
 });
 document.getElementById('closeSettingsBtn').addEventListener('click', () => {
   document.getElementById('settingsModal').classList.remove('show');
+});
+document.getElementById('closeNoteTasksModalBtn').addEventListener('click', () => {
+  document.getElementById('noteTasksModal').classList.remove('show');
+});
+document.getElementById('closeMinutesModalBtn').addEventListener('click', () => {
+  document.getElementById('minutesModal').classList.remove('show');
 });
 document.getElementById('signOutBtn').addEventListener('click', async () => {
   await supabase.auth.signOut();
@@ -1199,6 +1338,109 @@ document.getElementById('copyBodyBtn').addEventListener('click', async () => {
 });
 
 // ---------- Notes sidebar + editor ----------
+// Quill is constructed exactly once and kept alive in a detached wrapper;
+// renderEditor() (which fully rebuilds editor.innerHTML on every call) just
+// moves that live wrapper into a fresh empty slot instead of recreating it —
+// see app/CLAUDE.md lesson #4 on why a naive `new Quill(...)` per render
+// would leak instances and stack duplicate listeners.
+function ensureQuill() {
+  if (quill) return quill;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'quill-wrapper';
+  const host = document.createElement('div');
+  wrapper.appendChild(host);
+  quill = new Quill(host, {
+    theme: 'snow',
+    placeholder: "Write anything — a task, a follow-up, a meeting recap. When you're ready, click Extract Tasks.",
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ header: 1 }, { header: 2 }],
+        [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
+        ['blockquote', 'link']
+      ]
+    }
+  });
+  quill._wrapperEl = wrapper;
+  quill.on('text-change', (delta, oldDelta, source) => {
+    if (source !== 'user') return; // ignore programmatic loads from setContents() during note switch
+    clearTimeout(quillSaveTimer);
+    quillSaveTimer = setTimeout(() => saveCurrentNote(false), 800);
+  });
+  return quill;
+}
+
+// ---------- Pull-out panels: "Tasks from this note" / "Meeting minutes" ----------
+// Factored out of renderEditor()'s old always-visible split-panes so the
+// same markup/logic can be reused inside the modals below.
+function renderNoteTasksPane(noteTasks) {
+  if (!noteTasks.length) return '<div class="minutes-empty">No tasks extracted yet.</div>';
+  return noteTasks.map(t => {
+    const pc = PRIORITY_COLOR[t.priority] || '#999';
+    const done = t.status === 'Done';
+    return `
+      <div class="note-task-row" data-id="${t.id}">
+        <input type="checkbox" class="row-check" data-id="${t.id}" ${done ? 'checked' : ''}>
+        <span class="row-priority" style="background:${pc}"></span>
+        <span class="row-item ${done ? 'done' : ''}" style="flex:1;">${escapeHtml(t.item)}</span>
+        <span class="row-due ${t._overdue ? 'overdue' : ''}">${relativeDueLabel(t.due, t.status)}</span>
+        <span class="row-status ${statusClass(t.status || 'Open')}">${escapeHtml(t.status || 'Open')}</span>
+      </div>
+    `;
+  }).join('');
+}
+function renderMinutesPane(note) {
+  if (!note.minutes) {
+    return `<div class="minutes-empty">Not generated yet — uses your note text, plus the transcript if one is attached. Runs only when you ask.</div>
+      <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Generate Minutes</button></div>`;
+  }
+  return `<div class="minutes-pane">${escapeHtml(note.minutes)}</div>
+    <div class="minutes-meta">Generated ${note.minutesGeneratedAt ? new Date(note.minutesGeneratedAt).toLocaleString() : ''} · from ${note.minutesSource === 'transcript' ? 'note + transcript' : 'note only'}</div>
+    <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Regenerate Minutes</button></div>`;
+}
+function wireNoteTaskRowListeners(container) {
+  container.querySelectorAll('.note-task-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('row-check')) return;
+      openDetailModal(row.getAttribute('data-id'));
+    });
+  });
+  container.querySelectorAll('.note-task-row .row-check').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-id');
+      const ts = loadTasks();
+      const t = ts.find(x => x.id === id);
+      if (t) t.status = cb.checked ? 'Done' : 'Open';
+      saveTasks(ts);
+      openNoteTasksModal(); // refresh the modal's own list in place
+    });
+  });
+}
+function openNoteTasksModal() {
+  if (!selectedNoteId) return;
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) return;
+  const today = todayStr();
+  const noteTasks = loadTasks().filter(t => t.sourceNoteId === note.id && !t.deleted);
+  noteTasks.forEach(t => { t._overdue = !!(t.due && t.due < today && t.status !== 'Done'); });
+  const body = document.getElementById('noteTasksModalBody');
+  body.innerHTML = renderNoteTasksPane(noteTasks);
+  wireNoteTaskRowListeners(body);
+  document.getElementById('noteTasksModal').classList.add('show');
+}
+function openMinutesModal() {
+  if (!selectedNoteId) return;
+  const notes = loadNotes();
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) return;
+  document.getElementById('minutesModalBody').innerHTML = renderMinutesPane(note);
+  const btn = document.getElementById('generateMinutesBtn');
+  if (btn) btn.addEventListener('click', generateMinutesForCurrentNote);
+  document.getElementById('minutesModal').classList.add('show');
+}
+
 function renderSidebar() {
   const notes = loadNotes().slice().sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
   const list = document.getElementById('notesSidebarList');
@@ -1209,7 +1451,7 @@ function renderSidebar() {
   list.innerHTML = notes.map(n => `
     <div class="note-item ${n.id === selectedNoteId ? 'selected' : ''}" data-id="${n.id}">
       <div class="n-title">${escapeHtml(n.title || 'Untitled')}</div>
-      <div class="n-snippet">${escapeHtml((n.body||'').slice(0,60))}</div>
+      <div class="n-snippet">${escapeHtml(htmlToPlainText(n.body||'').slice(0,60))}</div>
       <div class="n-meta">${n.updatedAt ? new Date(n.updatedAt).toLocaleDateString() : ''}</div>
     </div>
   `).join('');
@@ -1231,12 +1473,12 @@ function renderEditor() {
     editor.innerHTML = '<div class="no-note-selected">Select a note or create a new one to get started.</div>';
     return;
   }
-  // Auto-heal legacy notes that were saved with literal <br> tags before this fix
+  // Auto-heal legacy notes: body upgrades plain text -> paragraph HTML (once,
+  // idempotent), transcript keeps the old <br>-stripping heal (still plain text).
   {
-    const cleanBody = sanitizeNoteText(note.body || '');
+    const bodyMigrated = migrateNoteBodyToHtml(note);
     const cleanTranscript = sanitizeNoteText(note.transcript || '');
-    if (cleanBody !== (note.body || '') || cleanTranscript !== (note.transcript || '')) {
-      note.body = cleanBody;
+    if (bodyMigrated || cleanTranscript !== (note.transcript || '')) {
       note.transcript = cleanTranscript;
       saveNotesArr(notes);
     }
@@ -1251,7 +1493,7 @@ function renderEditor() {
   editor.innerHTML = `
     <input class="title-input" id="titleInput" value="${escapeHtml(note.title||'')}" placeholder="Note title...">
     <div class="meta-row">Last updated ${note.updatedAt ? new Date(note.updatedAt).toLocaleString() : 'just now'}</div>
-    <textarea class="body-input" id="bodyInput" placeholder="Write anything — a task, a follow-up, a meeting recap. When you're ready, click Extract Tasks.">${escapeHtml(note.body||'')}</textarea>
+    <div id="quillMount"></div>
 
     ${showTranscript ? `
     <div class="transcript-section">
@@ -1277,46 +1519,25 @@ function renderEditor() {
       <div class="left-actions">
         <button class="btn btn-secondary" id="saveBtn">Save</button>
         <button class="btn btn-primary" id="extractBtn">Extract Tasks</button>
+        <button class="btn btn-secondary" id="openNoteTasksBtn">Tasks from this note${noteTasks.length ? ' (' + noteTasks.length + ')' : ''}</button>
+        <button class="btn btn-secondary" id="openMinutesBtn">Meeting Minutes</button>
         <button class="btn btn-danger" id="deleteNoteBtn">Delete Note</button>
       </div>
       <span class="status-line" id="editorStatus"></span>
     </div>
-
-    <div class="split-panes">
-      <div class="pane">
-        ${noteTasks.length ? `
-        <div class="note-tasks-heading">Tasks from this note (${noteTasks.length})</div>
-        ${noteTasks.map(t => {
-          const pc = PRIORITY_COLOR[t.priority] || '#999';
-          const done = t.status === 'Done';
-          return `
-            <div class="note-task-row" data-id="${t.id}">
-              <input type="checkbox" class="row-check" data-id="${t.id}" ${done ? 'checked' : ''}>
-              <span class="row-priority" style="background:${pc}"></span>
-              <span class="row-item ${done ? 'done' : ''}" style="flex:1;">${escapeHtml(t.item)}</span>
-              <span class="row-due ${t._overdue ? 'overdue' : ''}">${relativeDueLabel(t.due, t.status)}</span>
-              <span class="row-status ${statusClass(t.status || 'Open')}">${escapeHtml(t.status || 'Open')}</span>
-            </div>
-          `;
-        }).join('')}
-        ` : `<div class="note-tasks-heading">Tasks from this note</div><div class="minutes-empty">No tasks extracted yet.</div>`}
-      </div>
-      <div class="pane">
-        <div class="note-tasks-heading">Meeting minutes</div>
-        ${note.minutes ? `
-          <div class="minutes-pane">${escapeHtml(note.minutes)}</div>
-          <div class="minutes-meta">Generated ${note.minutesGeneratedAt ? new Date(note.minutesGeneratedAt).toLocaleString() : ''} · from ${note.minutesSource === 'transcript' ? 'note + transcript' : 'note only'}</div>
-          <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Regenerate Minutes</button></div>
-        ` : `
-          <div class="minutes-empty">Not generated yet — uses your note text, plus the transcript if one is attached. Runs only when you ask.</div>
-          <div style="margin-top:8px;"><button class="btn btn-secondary" id="generateMinutesBtn">Generate Minutes</button></div>
-        `}
-      </div>
-    </div>
   `;
+
+  const q = ensureQuill();
+  document.getElementById('quillMount').replaceWith(q._wrapperEl);
+  if (quillEditingNoteId !== note.id) {
+    q.setContents(q.clipboard.convert({ html: note.body || '<p><br></p>' }), 'silent');
+    quillEditingNoteId = note.id;
+  }
 
   document.getElementById('saveBtn').addEventListener('click', () => saveCurrentNote(true));
   document.getElementById('extractBtn').addEventListener('click', extractFromCurrentNote);
+  document.getElementById('openNoteTasksBtn').addEventListener('click', openNoteTasksModal);
+  document.getElementById('openMinutesBtn').addEventListener('click', openMinutesModal);
   document.getElementById('deleteNoteBtn').addEventListener('click', deleteCurrentNote);
   const addTranscriptBtn = document.getElementById('addTranscriptBtn');
   if (addTranscriptBtn) {
@@ -1367,25 +1588,9 @@ function renderEditor() {
       fileInput.value = '';
     });
   }
-  const generateBtn = document.getElementById('generateMinutesBtn');
-  if (generateBtn) generateBtn.addEventListener('click', generateMinutesForCurrentNote);
-  editor.querySelectorAll('.note-task-row').forEach(row => {
-    row.addEventListener('click', (e) => {
-      if (e.target.classList.contains('row-check')) return;
-      openDetailModal(row.getAttribute('data-id'));
-    });
-  });
-  editor.querySelectorAll('.note-task-row .row-check').forEach(cb => {
-    cb.addEventListener('click', (e) => e.stopPropagation());
-    cb.addEventListener('change', () => {
-      const id = cb.getAttribute('data-id');
-      const ts = loadTasks();
-      const t = ts.find(x => x.id === id);
-      if (t) t.status = cb.checked ? 'Done' : 'Open';
-      saveTasks(ts);
-      renderEditor();
-    });
-  });
+  // Note-task-row / generateMinutesBtn listeners now live in
+  // wireNoteTaskRowListeners()/openMinutesModal() — those elements are only
+  // ever rendered inside the pull-out modals, not this template.
 
   let saveTimer = null;
   const triggerAutosave = () => {
@@ -1404,11 +1609,6 @@ function renderEditor() {
     }
   }
   document.getElementById('titleInput').addEventListener('input', triggerAutosave);
-  const bodyInputEl = document.getElementById('bodyInput');
-  bodyInputEl.addEventListener('input', () => { liveCleanIfNeeded(bodyInputEl); triggerAutosave(); });
-  bodyInputEl.addEventListener('paste', () => {
-    setTimeout(() => { liveCleanIfNeeded(bodyInputEl); triggerAutosave(); }, 0);
-  });
   const transcriptInput = document.getElementById('transcriptInput');
   if (transcriptInput) {
     transcriptInput.addEventListener('input', () => { liveCleanIfNeeded(transcriptInput); triggerAutosave(); });
@@ -1431,10 +1631,16 @@ function saveCurrentNote(showStatus) {
   const notes = loadNotes();
   const note = notes.find(n => n.id === selectedNoteId);
   if (!note) return;
-  note.title = document.getElementById('titleInput').value;
-  const bodyEl = document.getElementById('bodyInput');
-  note.body = sanitizeNoteText(bodyEl.value);
-  if (bodyEl.value !== note.body) bodyEl.value = note.body;
+  const titleEl = document.getElementById('titleInput');
+  if (titleEl) note.title = titleEl.value;
+  // Guarded by quillEditingNoteId so a debounced save from a just-abandoned
+  // note can't write into the newly-selected note. Deliberately does NOT
+  // write the sanitized value back into quill.root.innerHTML the way the
+  // old textarea code did — that would reset live cursor position on every
+  // autosave; sanitizeNoteHtml is save-time defense in depth only.
+  if (quill && quillEditingNoteId === note.id) {
+    note.body = sanitizeNoteHtml(quill.root.innerHTML);
+  }
   const transcriptEl = document.getElementById('transcriptInput');
   if (transcriptEl) {
     note.transcript = sanitizeNoteText(transcriptEl.value);
@@ -1460,6 +1666,7 @@ function deleteCurrentNote() {
   tasks = tasks.filter(t => t.sourceNoteId !== selectedNoteId);
   saveTasks(tasks);
   selectedNoteId = null;
+  quillEditingNoteId = null;
   renderSidebar();
   renderEditor();
 }
@@ -1537,9 +1744,11 @@ async function extractFromCurrentNote() {
   saveCurrentNote(false);
   const notes = loadNotes();
   const note = notes.find(n => n.id === selectedNoteId);
-  if (!note || !note.body || !note.body.trim()) return;
+  const plainBody = htmlToPlainText(note && note.body || '');
+  if (!note || !plainBody.trim()) return;
 
   const useTranscript = !!(note.includeTranscriptInExtract && note.transcript && note.transcript.trim());
+  // Hashes the raw HTML body — only needs to detect *any* change, not semantic equivalence.
   const hashInput = note.body + (useTranscript ? '|' + note.transcript : '');
   const bodyHash = simpleHash(hashInput);
   const statusEl = document.getElementById('editorStatus');
@@ -1552,8 +1761,8 @@ async function extractFromCurrentNote() {
   if (statusEl) statusEl.textContent = useTranscript ? 'Reading note + transcript and pulling out tasks…' : 'Reading note and pulling out tasks…';
 
   try {
-    const raw = await callClaude(extractionPrompt(note.title, note.body, useTranscript ? note.transcript : null));
-    const parsed = parseTaskJson(raw, note.body);
+    const raw = await callClaude(extractionPrompt(note.title, plainBody, useTranscript ? note.transcript : null));
+    const parsed = parseTaskJson(raw, plainBody);
 
     const tasks = loadTasks();
     const kept = tasks.filter(t => !(t.sourceNoteId === note.id && t.status !== 'Done' && !t.deleted));
@@ -1585,7 +1794,8 @@ async function generateMinutesForCurrentNote() {
   const notes = loadNotes();
   const note = notes.find(n => n.id === selectedNoteId);
   if (!note) return;
-  const hasBody = !!(note.body && note.body.trim());
+  const plainBody = htmlToPlainText(note.body || '');
+  const hasBody = !!plainBody.trim();
   const hasTx = !!(note.transcript && note.transcript.trim());
   if (!hasBody && !hasTx) return;
 
@@ -1596,14 +1806,14 @@ async function generateMinutesForCurrentNote() {
   if (hasTx) {
     promptParts.push("Write clean, well-organized meeting minutes from the transcript below. Use short sections: Attendees (if identifiable), Key Discussion Points, Decisions Made, and Action Items. Keep it concise and skimmable, plain text only (no markdown symbols like # or asterisks). Base it primarily on the transcript; use the note title/body for extra context.");
     promptParts.push("Note title: " + (note.title || ''));
-    promptParts.push("Note context: " + (note.body || ''));
+    promptParts.push("Note context: " + plainBody);
     promptParts.push("Transcript:");
     promptParts.push(note.transcript);
   } else {
     promptParts.push("Write clean, well-organized meeting minutes based on the meeting notes below. The notes may be rough or fragmented - reconstruct them into: Key Discussion Points, Decisions Made, and Action Items (add Attendees only if names are clearly identifiable). Keep it concise and skimmable, plain text only (no markdown symbols like # or asterisks). Do not invent details that are not implied by the notes.");
     promptParts.push("Note title: " + (note.title || ''));
     promptParts.push("Meeting notes:");
-    promptParts.push(note.body);
+    promptParts.push(plainBody);
   }
   const prompt = promptParts.join(String.fromCharCode(10));
 
@@ -1617,7 +1827,9 @@ async function generateMinutesForCurrentNote() {
     note.minutes = 'Could not generate minutes — check your connection and try again.';
     saveNotesArr(notes);
   }
-  renderEditor();
+  // Modal body isn't part of renderEditor()'s template anymore — refresh it
+  // directly in place (openMinutesModal() is a no-op-safe re-render+re-show).
+  openMinutesModal();
 }
 
 // ---------- Quick add (Board) ----------
@@ -2020,6 +2232,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   document.getElementById('settingsModal').classList.remove('show');
   document.getElementById('detailModal').classList.remove('show');
+  document.getElementById('noteTasksModal').classList.remove('show');
+  document.getElementById('minutesModal').classList.remove('show');
   editingTaskId = null;
 });
 document.addEventListener('keydown', (e) => {
@@ -2037,12 +2251,15 @@ function migrateLegacyMarkup() {
   const notes = loadNotes();
   let nChanged = false;
   notes.forEach(n => {
-    ['title', 'body', 'transcript', 'minutes'].forEach(k => {
+    ['title', 'transcript', 'minutes'].forEach(k => {
       if (n[k] && markupRe.test(String(n[k]))) {
         const c = sanitizeNoteText(String(n[k]));
         if (c !== n[k]) { n[k] = c; nChanged = true; }
       }
     });
+    // Body has its own idempotent plain-text -> paragraph-HTML migration
+    // (skips notes that are already the new rich-HTML format).
+    if (migrateNoteBodyToHtml(n)) nChanged = true;
   });
   if (nChanged) saveNotesArr(notes);
   const ts = loadTasks();
