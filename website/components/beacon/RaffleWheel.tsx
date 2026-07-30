@@ -107,12 +107,6 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
   if (!currentWinner) return null;
 
   const segmentAngle = 360 / SEGMENT_COUNT;
-  const gradientStops = segments
-    .map((_, i) => {
-      const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
-      return `${color} ${i * segmentAngle}deg ${(i + 1) * segmentAngle}deg`;
-    })
-    .join(', ');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, padding: '20px 0' }}>
@@ -135,85 +129,14 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
         />
 
         <div
-          onTransitionEnd={handleTransitionEnd}
           style={{
             width: '100%',
             height: '100%',
             borderRadius: '50%',
-            background: segments.length ? `conic-gradient(${gradientStops})` : 'var(--gradient-hero)',
             boxShadow: '0 0 0 10px rgba(255,255,255,.95), 0 24px 60px rgba(0,0,0,.45)',
-            position: 'relative',
-            transform: `rotate(${rotation}deg)`,
-            transition: spinning ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.15, 0.65, 0.15, 1)` : 'none',
           }}
         >
-          {segments.map((seg, i) => {
-            const angle = i * segmentAngle + segmentAngle / 2;
-            // Labels in the bottom half would otherwise render upside down.
-            // What matters is the label's angle once the *whole wheel* has
-            // finished spinning (angle + the wheel's own rotation), not its
-            // angle in the wheel's own unrotated frame — flip whichever
-            // labels would land upside down at that final resting position.
-            const restingAngle = ((angle + rotation) % 360 + 360) % 360;
-            const flip = restingAngle > 90 && restingAngle < 270;
-            // The span's anchor (left:46 below) sits at local "east" (90deg
-            // clockwise from north) before any rotation — not at "north" —
-            // so wrapperAngle needs a -90 correction to actually land the
-            // anchor at `angle` (measured clockwise from north, matching
-            // the conic-gradient segment it's meant to label). Without this
-            // correction every label renders two segments away from its
-            // true color, which is what made the wheel look like it landed
-            // on the wrong name. The span gets a compensating +90 rotation
-            // so its own text orientation/readability is unaffected by the
-            // position fix.
-            const wrapperAngle = (flip ? angle + 180 : angle) - 90;
-            return (
-              <div
-                key={seg.id}
-                style={{ position: 'absolute', top: '50%', left: '50%', width: 0, height: 0, transform: `rotate(${wrapperAngle}deg)` }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -9,
-                    width: 96,
-                    textAlign: flip ? 'right' : 'left',
-                    ...(flip ? { right: 46 } : { left: 46 }),
-                    transform: 'rotate(90deg)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: 12,
-                    textShadow: '0 1px 3px rgba(0,0,0,.45)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {seg.name}
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Center hub with the Beacon mark */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              background: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 10px rgba(0,0,0,.3)',
-            }}
-          >
-            <img src="/beacon-mark.png" alt="" width={34} height={34} style={{ display: 'block' }} />
-          </div>
+          <WheelFace segments={segments} segmentAngle={segmentAngle} rotation={rotation} spinning={spinning} onSettled={handleTransitionEnd} />
         </div>
       </div>
 
@@ -227,6 +150,105 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
         )}
       </div>
     </div>
+  );
+}
+
+// ---------- Wheel face (SVG) ----------
+// Names read along the rim (SVG text-on-a-path) instead of as flat, tilted
+// labels — the standard technique real wheel-of-fortune UIs use, since a
+// straight label rotated to an arbitrary angle just reads badly at most
+// positions around a circle. Wedge fills and label paths share the exact
+// same polar-coordinate math, so there's no separate system that could ever
+// drift out of sync with the segment it's meant to label.
+const CX = 170;
+const CY = 170;
+const WHEEL_R = 170;
+const LABEL_R = 122;
+const HUB_R = 28;
+
+function polarPoint(angleDeg: number, radius: number) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return { x: CX + radius * Math.sin(rad), y: CY - radius * Math.cos(rad) };
+}
+
+function wedgePath(startAngle: number, endAngle: number) {
+  const p1 = polarPoint(startAngle, WHEEL_R);
+  const p2 = polarPoint(endAngle, WHEEL_R);
+  return `M ${CX} ${CY} L ${p1.x} ${p1.y} A ${WHEEL_R} ${WHEEL_R} 0 0 1 ${p2.x} ${p2.y} Z`;
+}
+
+// A short arc at label radius for the name to curve along. Bottom-half
+// segments have their arc drawn in reverse (end -> start) so the text's
+// "up" direction still points outward instead of rendering upside down —
+// same readability goal as before, just resolved by picking which way the
+// path runs instead of computing a compensating rotation by hand.
+function labelPath(startAngle: number, endAngle: number, flip: boolean) {
+  const a = flip ? endAngle : startAngle;
+  const b = flip ? startAngle : endAngle;
+  const p1 = polarPoint(a, LABEL_R);
+  const p2 = polarPoint(b, LABEL_R);
+  const sweep = flip ? 0 : 1;
+  return `M ${p1.x} ${p1.y} A ${LABEL_R} ${LABEL_R} 0 0 ${sweep} ${p2.x} ${p2.y}`;
+}
+
+function WheelFace({
+  segments,
+  segmentAngle,
+  rotation,
+  spinning,
+  onSettled,
+}: {
+  segments: WheelSegment[];
+  segmentAngle: number;
+  rotation: number;
+  spinning: boolean;
+  onSettled: () => void;
+}) {
+  return (
+    <svg
+      viewBox="0 0 340 340"
+      width="100%"
+      height="100%"
+      style={{ display: 'block', borderRadius: '50%', overflow: 'visible' }}
+    >
+      <g
+        onTransitionEnd={onSettled}
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: `${CX}px ${CY}px`,
+          transition: spinning ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.15, 0.65, 0.15, 1)` : 'none',
+        }}
+      >
+        {!segments.length && <circle cx={CX} cy={CY} r={WHEEL_R} fill="#334D7A" />}
+        {segments.map((seg, i) => {
+          const startAngle = i * segmentAngle;
+          const endAngle = startAngle + segmentAngle;
+          const center = startAngle + segmentAngle / 2;
+          // Whether this segment lands upright or upside-down once the
+          // wheel finishes spinning — same "final resting position"
+          // reasoning as the rotation target itself, not its angle in the
+          // wheel's own unrotated frame.
+          const restingAngle = ((center + rotation) % 360 + 360) % 360;
+          const flip = restingAngle > 90 && restingAngle < 270;
+          const pathId = `beacon-raffle-label-${seg.id}`;
+          return (
+            <g key={seg.id}>
+              <path d={wedgePath(startAngle, endAngle)} fill={WHEEL_COLORS[i % WHEEL_COLORS.length]} />
+              <path id={pathId} d={labelPath(startAngle, endAngle, flip)} fill="none" />
+              <text fontSize={13.5} fontWeight={700} fill="#fff" style={{ textShadow: '0 1px 3px rgba(0,0,0,.45)' }}>
+                <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
+                  {seg.name}
+                </textPath>
+              </text>
+            </g>
+          );
+        })}
+      </g>
+
+      {/* Center hub with the Beacon mark — outside the rotating group, so it never spins */}
+      <circle cx={CX} cy={CY} r={HUB_R} fill="#fff" style={{ filter: 'drop-shadow(0 2px 10px rgba(0,0,0,.3))' }} />
+      <image href="/beacon-mark.png" x={CX - 17} y={CY - 17} width={34} height={34} />
+    </svg>
   );
 }
 
