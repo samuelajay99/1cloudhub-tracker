@@ -29,7 +29,8 @@
     "publish": {
       "provider": "github",
       "owner": "samuelajay99",
-      "repo": "1cloudhub-tracker"
+      "repo": "1cloudhub-tracker",
+      "releaseType": "release"
     },
     "mac": {
       "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
