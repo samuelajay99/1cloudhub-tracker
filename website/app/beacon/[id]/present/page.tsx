@@ -141,6 +141,24 @@ function PresenterView({ eventId }: { eventId: string }) {
     load();
   }, [load]);
 
+  // Broadcasts are only ever delivered to tabs already subscribed at the
+  // moment they fire (see useBeaconChannel) — if this tab's realtime
+  // connection ever drops or misses one (network hiccup, laptop sleep,
+  // etc.), it would otherwise sit frozen on stale state indefinitely, since
+  // nothing else prompts a re-check. load() is a full, idempotent
+  // reconstruction from the database, so periodically re-running it (plus
+  // immediately on tab focus, for a snappier recovery) self-heals from a
+  // missed broadcast without disrupting anything when nothing changed.
+  useEffect(() => {
+    const interval = setInterval(load, 20000);
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [load]);
+
   const onMessage = useCallback(async (msg: BeaconMessage) => {
     if (msg.type === 'question_started') {
       setQuestionTitle(msg.payload.title);

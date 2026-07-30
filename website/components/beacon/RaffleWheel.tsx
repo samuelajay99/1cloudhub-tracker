@@ -152,7 +152,17 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
             // labels would land upside down at that final resting position.
             const restingAngle = ((angle + rotation) % 360 + 360) % 360;
             const flip = restingAngle > 90 && restingAngle < 270;
-            const wrapperAngle = flip ? angle + 180 : angle;
+            // The span's anchor (left:46 below) sits at local "east" (90deg
+            // clockwise from north) before any rotation — not at "north" —
+            // so wrapperAngle needs a -90 correction to actually land the
+            // anchor at `angle` (measured clockwise from north, matching
+            // the conic-gradient segment it's meant to label). Without this
+            // correction every label renders two segments away from its
+            // true color, which is what made the wheel look like it landed
+            // on the wrong name. The span gets a compensating +90 rotation
+            // so its own text orientation/readability is unaffected by the
+            // position fix.
+            const wrapperAngle = (flip ? angle + 180 : angle) - 90;
             return (
               <div
                 key={seg.id}
@@ -165,6 +175,7 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
                     width: 96,
                     textAlign: flip ? 'right' : 'left',
                     ...(flip ? { right: 46 } : { left: 46 }),
+                    transform: 'rotate(90deg)',
                     color: '#fff',
                     fontWeight: 700,
                     fontSize: 12,

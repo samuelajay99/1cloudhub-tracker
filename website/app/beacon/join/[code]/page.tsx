@@ -78,6 +78,7 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
   const [stage, setStage] = useState<Stage>('loading');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -120,24 +121,25 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
     }
   }, []);
 
-  async function join(joinName: string, joinEmail: string) {
-    const { data, error } = await callFunction<any>('beacon-join', { join_code: code, name: joinName, email: joinEmail });
+  async function join(joinName: string, joinEmail: string, joinCompany: string) {
+    const { data, error } = await callFunction<any>('beacon-join', { join_code: code, name: joinName, email: joinEmail, company: joinCompany });
     if (error || !data) {
       setErrorMsg(error || 'Could not join this event.');
       setStage('error');
       return;
     }
-    localStorage.setItem(storageKey, JSON.stringify({ name: joinName, email: joinEmail }));
+    localStorage.setItem(storageKey, JSON.stringify({ name: joinName, email: joinEmail, company: joinCompany }));
     applyJoinResponse(data);
   }
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
     if (stored) {
-      const { name: n, email: e } = JSON.parse(stored);
+      const { name: n, email: e, company: c } = JSON.parse(stored);
       setName(n);
       setEmail(e);
-      join(n, e);
+      setCompany(c || '');
+      join(n, e, c || '');
     } else {
       setStage('registering');
     }
@@ -183,7 +185,7 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
       return;
     }
     setSubmitting(true);
-    await join(name.trim(), email.trim());
+    await join(name.trim(), email.trim(), company.trim());
     setSubmitting(false);
   }
 
@@ -229,6 +231,7 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
               <p style={subStyle}>Enter your name and email to join.</p>
               <input className="ch-field" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
               <input className="ch-field" placeholder="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input className="ch-field" placeholder="Company (optional)" value={company} onChange={(e) => setCompany(e.target.value)} />
               <button className="ch-btn ch-btn-primary full" disabled={submitting} onClick={handleRegister}>
                 {submitting ? 'Joining…' : 'Join'}
               </button>

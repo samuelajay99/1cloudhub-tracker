@@ -128,6 +128,21 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     load();
   }, [load]);
 
+  // Same defensive self-heal as the presenter view: a second host tab (or
+  // this one, after a network hiccup) that misses a broadcast would
+  // otherwise sit on stale state indefinitely. load() is a full, idempotent
+  // reconstruction, so a periodic re-check plus one on tab focus is a cheap
+  // way to recover without needing a manual refresh.
+  useEffect(() => {
+    const interval = setInterval(load, 20000);
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [load]);
+
   const onMessage = useCallback(
     async (msg: BeaconMessage) => {
       if (msg.type === 'tally_update') {

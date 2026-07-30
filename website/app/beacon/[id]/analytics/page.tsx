@@ -10,7 +10,36 @@ import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import StatCard from '../../../../components/beacon/StatCard';
 import { BeaconEvent, BeaconParticipant, BeaconQuestion, BeaconResponse, computeTallies, leaderboardSort } from '../../../../lib/beacon';
-import { ArrowLeft, Users, CheckCircle2, TrendingUp, Target, Trophy, TrendingDown, Percent, PartyPopper, Archive } from 'lucide-react';
+import { ArrowLeft, Users, CheckCircle2, TrendingUp, Target, Trophy, TrendingDown, Percent, PartyPopper, Archive, Download } from 'lucide-react';
+
+// Escapes a single CSV field per RFC 4180: wrap in quotes (and double up any
+// quotes inside) whenever the value contains a comma, quote, or newline —
+// left alone otherwise so the common case stays readable/unquoted.
+function csvField(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+function downloadParticipantsCsv(eventTitle: string, participants: BeaconParticipant[]) {
+  const header = ['Name', 'Email', 'Company', 'Score', 'Completed'];
+  const rows = participants.map((p) => [
+    p.name,
+    p.email,
+    p.company || '',
+    String(p.score),
+    p.completed_at ? 'Yes' : 'No',
+  ]);
+  const csv = [header, ...rows].map((row) => row.map(csvField).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${eventTitle.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'beacon-event'}-participants.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function BeaconAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -131,11 +160,20 @@ function Analytics({ eventId }: { eventId: string }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
           <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 24 }}>{event.title} — analytics</h1>
-          {event.status === 'closed' && (
-            <button className="ch-btn ch-btn-secondary" onClick={archiveEvent}>
-              <Archive size={15} strokeWidth={2} /> Archive event
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="ch-btn ch-btn-secondary"
+              onClick={() => downloadParticipantsCsv(event.title, participants)}
+              disabled={participants.length === 0}
+            >
+              <Download size={15} strokeWidth={2} /> Export participants (CSV)
             </button>
-          )}
+            {event.status === 'closed' && (
+              <button className="ch-btn ch-btn-secondary" onClick={archiveEvent}>
+                <Archive size={15} strokeWidth={2} /> Archive event
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>

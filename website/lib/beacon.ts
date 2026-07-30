@@ -69,6 +69,7 @@ export interface BeaconParticipant {
   event_id: string;
   name: string;
   email: string;
+  company: string | null;
   score: number;
   completed_at: string | null;
   created_at: string;

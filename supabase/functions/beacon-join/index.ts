@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     return json({ error: "method not allowed" }, 405);
   }
 
-  let body: { join_code?: string; name?: string; email?: string };
+  let body: { join_code?: string; name?: string; email?: string; company?: string };
   try {
     body = await req.json();
   } catch {
@@ -33,6 +33,9 @@ Deno.serve(async (req) => {
   const joinCode = (body.join_code || "").trim();
   const name = (body.name || "").trim().slice(0, 100);
   const email = (body.email || "").trim().toLowerCase().slice(0, 200);
+  // Optional — not every event asks for it, and rejecting a signup over a
+  // missing company would be a worse trade-off than just leaving it blank.
+  const company = (body.company || "").trim().slice(0, 150) || null;
 
   if (!joinCode || !name || !email) {
     return json({ error: "join_code, name, and email are required" }, 400);
@@ -74,9 +77,14 @@ Deno.serve(async (req) => {
 
   let participant: { id: string; name: string; score: number };
   if (existing) {
+    // Only touch company if this request actually supplied one — an older
+    // client (or a rejoin call that doesn't resend it) shouldn't blank out
+    // a company value that was already captured.
+    const updates: { name: string; company?: string } = { name };
+    if (company) updates.company = company;
     const { data: updated, error: updateErr } = await supabase
       .from("beacon_participants")
-      .update({ name })
+      .update(updates)
       .eq("id", existing.id)
       .select("id, name, score")
       .single();
@@ -85,7 +93,7 @@ Deno.serve(async (req) => {
   } else {
     const { data: inserted, error: insertErr } = await supabase
       .from("beacon_participants")
-      .insert({ event_id: event.id, name, email })
+      .insert({ event_id: event.id, name, email, company })
       .select("id, name, score")
       .single();
     if (insertErr || !inserted) return json({ error: "Could not join event" }, 500);
