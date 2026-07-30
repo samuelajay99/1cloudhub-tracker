@@ -760,6 +760,7 @@
     <div class="modal">
       <h3>Account</h3>
       <p>Signed in as <strong id="accountEmailLabel"></strong>. AI features run through the shared 1CloudHub server — no API key needed here.</p>
+      <p style="font-size:11px;color:var(--faint);margin-top:-6px;">Compass version <span id="appVersionLabel">—</span></p>
       <div class="status-line" id="syncStatusLabel"></div>
       <div class="modal-actions">
         <span></span>
@@ -1145,6 +1146,13 @@ function showToast(msg, onUndo) {
 }
 
 // ---------- Settings modal ----------
+{
+  // main.js passes the packaged app's real version via a query param on
+  // load (index.html?v=1.0.8) — plain `?` parsing needs no preload script.
+  const v = new URLSearchParams(window.location.search).get('v');
+  const el = document.getElementById('appVersionLabel');
+  if (v && el) el.textContent = v;
+}
 document.getElementById('gearBtn').addEventListener('click', () => {
   document.getElementById('accountEmailLabel').textContent = currentUser ? currentUser.email : '';
   document.getElementById('settingsModal').classList.add('show');

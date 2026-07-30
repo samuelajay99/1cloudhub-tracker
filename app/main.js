@@ -21,7 +21,9 @@ function createWindow() {
     },
   });
   win.setMenuBarVisibility(false);
-  win.loadFile('index.html');
+  // Query param, not a preload/contextBridge — simplest way to hand the
+  // renderer a read-only value without touching the contextIsolation setup.
+  win.loadFile('index.html', { query: { v: app.getVersion() } });
   return win;
 }
 
