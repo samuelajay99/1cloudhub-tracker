@@ -10,7 +10,9 @@ import { useEffect, useRef, useState } from 'react';
 
 const WHEEL_COLORS = ['#7C3AED', '#C026D3', '#EC4899', '#F97316', '#EAB308', '#0EA5E9', '#6366F1', '#DB2777'];
 const SEGMENT_COUNT = 8;
-const SPIN_DURATION_MS = 4200;
+// 9600ms of spin + the 350ms pre-spin pause below = ~10s of suspense before
+// the wheel settles, on request — long enough for the room to feel it build.
+const SPIN_DURATION_MS = 9600;
 const CELEBRATION_PAUSE_MS = 2600;
 
 interface WheelSegment {
@@ -79,7 +81,9 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
     const targetRemainder = (((360 - winnerCenter + jitter) % 360) + 360) % 360;
     const currentRemainder = ((rotationRef.current % 360) + 360) % 360;
     const forwardDelta = ((targetRemainder - currentRemainder + 360) % 360) || 360;
-    const extraSpins = 6;
+    // Scaled up with SPIN_DURATION_MS so the longer spin still feels fast
+    // and builds tension, rather than crawling for 10 seconds.
+    const extraSpins = 14;
     const target = rotationRef.current + extraSpins * 360 + forwardDelta;
 
     const t = setTimeout(() => {

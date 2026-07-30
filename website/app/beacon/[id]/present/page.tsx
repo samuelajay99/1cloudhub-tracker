@@ -82,22 +82,22 @@ function PresenterView({ eventId }: { eventId: string }) {
       });
 
       if (closingView === 'raffle' && winners) {
-        // If this is a periodic re-sync (not the very first load) and the
-        // drawn winners already match what's on screen, skip touching
-        // raffle state entirely — this reconstruction path always renders
-        // statically (instant=true), so blindly re-running it here would
-        // interrupt an in-progress live spin (from a 'raffle_drawn'
-        // broadcast this tab actually did receive) and flip it to the
-        // static list mid-animation. Only actually update when the winner
-        // set genuinely differs from what's already displayed (a fresh
-        // transition into 'raffle', or a second raffle draw this tab missed).
+        // Presenter is the audience-facing big screen — it should always
+        // play the real suspenseful spin, whether it's catching up because
+        // this tab was opened/refreshed after the host already ran the
+        // raffle (the common case — presenter is usually opened once and
+        // left up, but can be reopened any time), or because it received
+        // the live broadcast. Only re-fetch/re-render when the drawn winner
+        // set actually differs from what's already displayed, so a
+        // redundant periodic re-sync doesn't restart an in-progress spin.
         const newIds = winners.map((w) => w.participant_id).sort().join(',');
         const currentIds = raffleWinnersRef.current.map((w) => w.participant_id).sort().join(',');
         if (newIds !== currentIds) {
           const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
           const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
+          setParticipantPool((participants || []).map((p) => p.name));
           setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
-          setRaffleInstant(true);
+          setRaffleInstant(false);
         }
         setView('raffle');
       } else if (closingView === 'podium' || closingView === 'leaderboard') {
