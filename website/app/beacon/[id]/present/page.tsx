@@ -12,7 +12,7 @@ import OptionShape, { optionStyle } from '../../../../components/beacon/OptionSh
 import CountdownRing from '../../../../components/beacon/CountdownRing';
 import { useCountdown } from '../../../../components/beacon/useCountdown';
 import { useBeaconChannel } from '../../../../components/beacon/useBeaconChannel';
-import { BeaconEvent, BeaconMessage, QuestionOption, Tally, leaderboardSort, latestClosingView } from '../../../../lib/beacon';
+import { BeaconEvent, BeaconMessage, QuestionOption, Tally, RaffleWinnerDisplay, RafflePoolEntry, leaderboardSort, latestClosingView } from '../../../../lib/beacon';
 import { ArrowLeft } from 'lucide-react';
 
 type View = 'waiting' | 'question' | 'results' | 'leaderboard' | 'podium' | 'raffle' | 'closed';
@@ -41,9 +41,9 @@ function PresenterView({ eventId }: { eventId: string }) {
   const [explanation, setExplanation] = useState<string | undefined>(undefined);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>([]);
   const [podiumRows, setPodiumRows] = useState<LeaderboardRow[]>([]);
-  const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[]>([]);
+  const [raffleWinners, setRaffleWinners] = useState<RaffleWinnerDisplay[]>([]);
   const [raffleInstant, setRaffleInstant] = useState(false);
-  const [participantPool, setParticipantPool] = useState<string[]>([]);
+  const [participantPool, setParticipantPool] = useState<RafflePoolEntry[]>([]);
 
   // Read inside load() via refs (not state directly) so load()'s identity
   // stays stable — see the guard below for why this matters.
@@ -93,10 +93,16 @@ function PresenterView({ eventId }: { eventId: string }) {
         const newIds = winners.map((w) => w.participant_id).sort().join(',');
         const currentIds = raffleWinnersRef.current.map((w) => w.participant_id).sort().join(',');
         if (newIds !== currentIds) {
-          const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
-          const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
-          setParticipantPool((participants || []).map((p) => p.name));
-          setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
+          const { data: participants } = await supabase.from('beacon_participants').select('id, name, email').eq('event_id', eventId);
+          const byId = new Map((participants || []).map((p) => [p.id, p]));
+          setParticipantPool((participants || []).map((p) => ({ participant_id: p.id, name: p.name })));
+          setRaffleWinners(
+            winners.map((w) => ({
+              participant_id: w.participant_id,
+              name: byId.get(w.participant_id)?.name || 'Unknown',
+              email: byId.get(w.participant_id)?.email || '',
+            }))
+          );
           setRaffleInstant(false);
         }
         setView('raffle');
@@ -208,8 +214,8 @@ function PresenterView({ eventId }: { eventId: string }) {
       setPodiumRows(msg.payload.rows);
       setView('podium');
     } else if (msg.type === 'raffle_drawn') {
-      const { data: participants } = await supabase.from('beacon_participants').select('name').eq('event_id', eventId);
-      setParticipantPool((participants || []).map((p) => p.name));
+      const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
+      setParticipantPool((participants || []).map((p) => ({ participant_id: p.id, name: p.name })));
       setRaffleWinners(msg.payload.winners);
       setRaffleInstant(false);
       setView('raffle');

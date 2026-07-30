@@ -9,7 +9,7 @@ import BeaconGate from '../../../../components/beacon/BeaconGate';
 import BarChart from '../../../../components/beacon/BarChart';
 import Leaderboard, { LeaderboardRow } from '../../../../components/beacon/Leaderboard';
 import StatCard from '../../../../components/beacon/StatCard';
-import { BeaconEvent, BeaconParticipant, BeaconQuestion, BeaconResponse, computeTallies, leaderboardSort } from '../../../../lib/beacon';
+import { BeaconEvent, BeaconParticipant, BeaconQuestion, BeaconResponse, RaffleWinnerDisplay, computeTallies, leaderboardSort } from '../../../../lib/beacon';
 import { ArrowLeft, Users, CheckCircle2, TrendingUp, Target, Trophy, TrendingDown, Percent, PartyPopper, Archive, Download } from 'lucide-react';
 
 // Escapes a single CSV field per RFC 4180: wrap in quotes (and double up any
@@ -53,7 +53,7 @@ function Analytics({ eventId }: { eventId: string }) {
   const [questions, setQuestions] = useState<BeaconQuestion[]>([]);
   const [participants, setParticipants] = useState<BeaconParticipant[]>([]);
   const [responses, setResponses] = useState<BeaconResponse[]>([]);
-  const [winners, setWinners] = useState<{ participant_id: string; name: string }[]>([]);
+  const [winners, setWinners] = useState<RaffleWinnerDisplay[]>([]);
 
   async function load() {
     const { data: eventRow } = await supabase.from('beacon_events').select('*').eq('id', eventId).single();
@@ -74,8 +74,14 @@ function Analytics({ eventId }: { eventId: string }) {
     setParticipants(participantRows || []);
     setResponses(responseRows || []);
 
-    const nameById = new Map((participantRows || []).map((p) => [p.id, p.name]));
-    setWinners((winnerRows || []).map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
+    const byId = new Map((participantRows || []).map((p) => [p.id, p]));
+    setWinners(
+      (winnerRows || []).map((w) => ({
+        participant_id: w.participant_id,
+        name: byId.get(w.participant_id)?.name || 'Unknown',
+        email: byId.get(w.participant_id)?.email || '',
+      }))
+    );
 
     setLoaded(true);
   }
@@ -228,7 +234,10 @@ function Analytics({ eventId }: { eventId: string }) {
                     style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-card-alt)' }}
                   >
                     <PartyPopper size={18} strokeWidth={2} color="#DB2777" />
-                    <span style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{w.name}</span>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>{w.name}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{w.email}</div>
+                    </div>
                   </div>
                 ))}
               </div>

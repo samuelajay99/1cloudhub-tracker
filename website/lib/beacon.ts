@@ -94,6 +94,19 @@ export interface BeaconRaffleWinner {
   drawn_at: string;
 }
 
+// Two participants at the same event can share a name — email is the real
+// unique identifier, so every raffle display carries both: name for the
+// big on-screen reveal, email so the host can actually tell who won.
+export interface RaffleWinnerDisplay {
+  participant_id: string;
+  name: string;
+  email: string;
+}
+export interface RafflePoolEntry {
+  participant_id: string;
+  name: string;
+}
+
 export interface Tally {
   option_id: string;
   count: number;
@@ -138,7 +151,7 @@ export type BeaconMessage =
       type: 'leaderboard_shown';
       payload: { scope: LeaderboardScope; rows: { participant_id: string; name: string; score: number; rank: number }[] };
     }
-  | { type: 'raffle_drawn'; payload: { winners: { participant_id: string; name: string }[] } }
+  | { type: 'raffle_drawn'; payload: { winners: RaffleWinnerDisplay[] } }
   | { type: 'podium_shown'; payload: { rows: { participant_id: string; name: string; score: number; rank: number }[] } }
   | { type: 'event_closed'; payload: Record<string, never> };
 

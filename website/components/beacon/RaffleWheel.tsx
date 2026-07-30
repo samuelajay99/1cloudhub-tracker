@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { RaffleWinnerDisplay, RafflePoolEntry } from '../../lib/beacon';
 
 // Winners are already decided server-side (see runRaffle() in the host
 // live-control room) — this is a cosmetic reveal. A real spinning wheel,
@@ -25,8 +26,8 @@ export default function RaffleWheel({
   winners,
   instant = false,
 }: {
-  pool: string[];
-  winners: { participant_id: string; name: string }[];
+  pool: RafflePoolEntry[];
+  winners: RaffleWinnerDisplay[];
   // Skips the spin — used when reconstructing an already-drawn raffle on
   // page load (a fresh presenter tab, or a host reload) rather than
   // reacting to the live "raffle_drawn" broadcast, where replaying the
@@ -37,8 +38,9 @@ export default function RaffleWheel({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '20px 0' }}>
         {winners.map((w) => (
-          <div key={w.participant_id} style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: '#fff' }}>
-            🎉 {w.name}
+          <div key={w.participant_id} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: '#fff' }}>🎉 {w.name}</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,.7)', fontFamily: 'var(--font-mono)' }}>{w.email}</div>
           </div>
         ))}
       </div>
@@ -47,7 +49,7 @@ export default function RaffleWheel({
   return <SpinningRaffleWheel pool={pool} winners={winners} />;
 }
 
-function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { participant_id: string; name: string }[] }) {
+function SpinningRaffleWheel({ pool, winners }: { pool: RafflePoolEntry[]; winners: RaffleWinnerDisplay[] }) {
   const [winnerIndex, setWinnerIndex] = useState(0);
   const [segments, setSegments] = useState<WheelSegment[]>([]);
   const [rotation, setRotation] = useState(0);
@@ -61,7 +63,12 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
     if (!currentWinner) return;
     setCelebrating(false);
 
-    const others = pool.filter((n) => n !== currentWinner.name);
+    // Excluded by participant_id, not name — two different people at the
+    // same event can share a name, and filtering by name string would
+    // incorrectly drop the OTHER person's filler slot along with the
+    // winner's, and (worse) could make the wrong same-named participant
+    // vanish from the wheel entirely.
+    const others = pool.filter((p) => p.participant_id !== currentWinner.participant_id).map((p) => p.name);
     const shuffled = [...others].sort(() => Math.random() - 0.5);
     const winnerSlot = Math.floor(Math.random() * SEGMENT_COUNT);
     let fillerIdx = 0;
@@ -142,7 +149,7 @@ function SpinningRaffleWheel({ pool, winners }: { pool: string[]; winners: { par
 
       <div style={{ minHeight: 90, textAlign: 'center' }}>
         {celebrating ? (
-          <Celebration name={currentWinner.name} key={currentWinner.participant_id} />
+          <Celebration name={currentWinner.name} email={currentWinner.email} key={currentWinner.participant_id} />
         ) : (
           <p style={{ fontSize: 'var(--text-md)', color: 'rgba(255,255,255,.75)' }}>
             Drawing winner {winnerIndex + 1} of {winners.length}…
@@ -252,7 +259,7 @@ function WheelFace({
   );
 }
 
-function Celebration({ name }: { name: string }) {
+function Celebration({ name, email }: { name: string; email: string }) {
   const pieces = Array.from({ length: 26 }, (_, i) => i);
   return (
     <div style={{ position: 'relative' }}>
@@ -290,6 +297,7 @@ function Celebration({ name }: { name: string }) {
         🎉 WINNER
       </div>
       <div style={{ fontSize: 'var(--text-4xl)', fontWeight: 700, color: '#fff', animation: 'beacon-raffle-pop 500ms ease' }}>{name}</div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,.7)', fontFamily: 'var(--font-mono)', marginTop: 4, animation: 'beacon-raffle-pop 500ms ease' }}>{email}</div>
       <style>{`
         @keyframes beacon-raffle-pop {
           0% { transform: scale(0.6); opacity: 0; }

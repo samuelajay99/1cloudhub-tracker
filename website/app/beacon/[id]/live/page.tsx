@@ -21,6 +21,8 @@ import {
   BeaconMessage,
   LeaderboardScope,
   Tally,
+  RaffleWinnerDisplay,
+  RafflePoolEntry,
   leaderboardSort,
   computeTallies,
   latestClosingView,
@@ -43,9 +45,9 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
   const [completedCount, setCompletedCount] = useState(0);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[] | null>(null);
   const [podiumRows, setPodiumRows] = useState<LeaderboardRow[] | null>(null);
-  const [raffleWinners, setRaffleWinners] = useState<{ participant_id: string; name: string }[] | null>(null);
+  const [raffleWinners, setRaffleWinners] = useState<RaffleWinnerDisplay[] | null>(null);
   const [raffleInstant, setRaffleInstant] = useState(false);
-  const [rafflePool, setRafflePool] = useState<string[]>([]);
+  const [rafflePool, setRafflePool] = useState<RafflePoolEntry[]>([]);
 
   // Read inside load() via a ref (not state directly) so load()'s identity
   // stays stable — see the guard below for why this matters.
@@ -115,10 +117,16 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
         const newIds = winners.map((w) => w.participant_id).sort().join(',');
         const currentIds = (raffleWinnersRef.current || []).map((w) => w.participant_id).sort().join(',');
         if (newIds !== currentIds) {
-          const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
-          const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
-          setRafflePool((participants || []).map((p) => p.name));
-          setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
+          const { data: participants } = await supabase.from('beacon_participants').select('id, name, email').eq('event_id', eventId);
+          const byId = new Map((participants || []).map((p) => [p.id, p]));
+          setRafflePool((participants || []).map((p) => ({ participant_id: p.id, name: p.name })));
+          setRaffleWinners(
+            winners.map((w) => ({
+              participant_id: w.participant_id,
+              name: byId.get(w.participant_id)?.name || 'Unknown',
+              email: byId.get(w.participant_id)?.email || '',
+            }))
+          );
           setRaffleInstant(true);
         }
       } else if (closingView === 'podium' || closingView === 'leaderboard') {
@@ -172,8 +180,8 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
         setPodiumRows(msg.payload.rows);
       } else if (msg.type === 'raffle_drawn') {
         if (rafflePool.length === 0) {
-          const { data: participants } = await supabase.from('beacon_participants').select('name').eq('event_id', eventId);
-          setRafflePool((participants || []).map((p) => p.name));
+          const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
+          setRafflePool((participants || []).map((p) => ({ participant_id: p.id, name: p.name })));
         }
         setRaffleWinners(msg.payload.winners);
         setRaffleInstant(false);
@@ -316,9 +324,9 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
     const { data: existingWinners } = await supabase.from('beacon_raffle_winners').select('participant_id').eq('event_id', eventId);
     const excluded = new Set((existingWinners || []).map((w) => w.participant_id));
 
-    let query = supabase.from('beacon_participants').select('id, name, score, completed_at').eq('event_id', eventId);
+    let query = supabase.from('beacon_participants').select('id, name, email, score, completed_at').eq('event_id', eventId);
     const { data: pool } = await query;
-    setRafflePool((pool || []).map((p) => p.name));
+    setRafflePool((pool || []).map((p) => ({ participant_id: p.id, name: p.name })));
     let eligible = (pool || []).filter((p) => !excluded.has(p.id));
     if (event.raffle_eligibility === 'completed') eligible = eligible.filter((p) => p.completed_at);
     if (event.raffle_eligibility === 'min_score') eligible = eligible.filter((p) => p.score >= (event.raffle_min_score || 0));
@@ -341,7 +349,7 @@ function LiveControlRoom({ eventId }: { eventId: string }) {
       .insert(winners.map((w) => ({ event_id: eventId, participant_id: w.id })));
     if (error) return showToast(error.message, 'error');
 
-    const winnerPayload = winners.map((w) => ({ participant_id: w.id, name: w.name }));
+    const winnerPayload = winners.map((w) => ({ participant_id: w.id, name: w.name, email: w.email }));
     setRaffleWinners(winnerPayload);
     setRaffleInstant(false);
     await send({ type: 'raffle_drawn', payload: { winners: winnerPayload } });
