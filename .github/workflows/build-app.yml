@@ -35,6 +35,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      - name: Set package.json version from the tag
+        run: npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
       - run: npm run build-mac
       - name: Rename artifacts to stable filenames
         run: |
@@ -59,7 +61,14 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npm run build-win
+      - name: Set package.json version from the tag
+        shell: bash
+        run: npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
+      - name: Build and publish to the GitHub Release (for auto-update)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
       - name: Rename artifact to stable filename
         shell: bash
         run: |

@@ -8,6 +8,9 @@
     "build-mac": "electron-builder --mac --publish never",
     "build-win": "electron-builder --win --publish never"
   },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
   "devDependencies": {
     "electron": "^33.0.0",
     "electron-builder": "^25.1.8"
@@ -23,6 +26,11 @@
       "main.js",
       "assets/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "samuelajay99",
+      "repo": "1cloudhub-tracker"
+    },
     "mac": {
       "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
       "identity": null,
