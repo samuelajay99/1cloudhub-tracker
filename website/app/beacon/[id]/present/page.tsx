@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import BeaconGate from '../../../../components/beacon/BeaconGate';
 import QRCode from '../../../../components/beacon/QRCode';
@@ -45,6 +45,11 @@ function PresenterView({ eventId }: { eventId: string }) {
   const [raffleInstant, setRaffleInstant] = useState(false);
   const [participantPool, setParticipantPool] = useState<string[]>([]);
 
+  // Read inside load() via refs (not state directly) so load()'s identity
+  // stays stable — see the guard below for why this matters.
+  const raffleWinnersRef = useRef(raffleWinners);
+  useEffect(() => { raffleWinnersRef.current = raffleWinners; }, [raffleWinners]);
+
   const load = useCallback(async () => {
     const { data: eventRow } = await supabase.from('beacon_events').select('*').eq('id', eventId).single();
     if (!eventRow) {
@@ -77,10 +82,23 @@ function PresenterView({ eventId }: { eventId: string }) {
       });
 
       if (closingView === 'raffle' && winners) {
-        const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
-        const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
-        setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
-        setRaffleInstant(true);
+        // If this is a periodic re-sync (not the very first load) and the
+        // drawn winners already match what's on screen, skip touching
+        // raffle state entirely — this reconstruction path always renders
+        // statically (instant=true), so blindly re-running it here would
+        // interrupt an in-progress live spin (from a 'raffle_drawn'
+        // broadcast this tab actually did receive) and flip it to the
+        // static list mid-animation. Only actually update when the winner
+        // set genuinely differs from what's already displayed (a fresh
+        // transition into 'raffle', or a second raffle draw this tab missed).
+        const newIds = winners.map((w) => w.participant_id).sort().join(',');
+        const currentIds = raffleWinnersRef.current.map((w) => w.participant_id).sort().join(',');
+        if (newIds !== currentIds) {
+          const { data: participants } = await supabase.from('beacon_participants').select('id, name').eq('event_id', eventId);
+          const nameById = new Map((participants || []).map((p) => [p.id, p.name]));
+          setRaffleWinners(winners.map((w) => ({ participant_id: w.participant_id, name: nameById.get(w.participant_id) || 'Unknown' })));
+          setRaffleInstant(true);
+        }
         setView('raffle');
       } else if (closingView === 'podium' || closingView === 'leaderboard') {
         const { data: participants } = await supabase
