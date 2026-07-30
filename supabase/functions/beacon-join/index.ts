@@ -33,8 +33,6 @@ Deno.serve(async (req) => {
   const joinCode = (body.join_code || "").trim();
   const name = (body.name || "").trim().slice(0, 100);
   const email = (body.email || "").trim().toLowerCase().slice(0, 200);
-  // Optional — not every event asks for it, and rejecting a signup over a
-  // missing company would be a worse trade-off than just leaving it blank.
   const company = (body.company || "").trim().slice(0, 150) || null;
 
   if (!joinCode || !name || !email) {
@@ -91,6 +89,13 @@ Deno.serve(async (req) => {
     if (updateErr || !updated) return json({ error: "Could not join event" }, 500);
     participant = updated;
   } else {
+    // Required for a brand-new registration (enforced here too, not just in
+    // the join form, since this endpoint is public). Not required to
+    // rejoin — an existing participant whose stored session predates this
+    // field shouldn't be locked out of reconnecting.
+    if (!company) {
+      return json({ error: "company is required to join" }, 400);
+    }
     const { data: inserted, error: insertErr } = await supabase
       .from("beacon_participants")
       .insert({ event_id: event.id, name, email, company })

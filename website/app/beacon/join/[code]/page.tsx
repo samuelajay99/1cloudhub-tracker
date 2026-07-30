@@ -180,8 +180,8 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
   const countdown = useCountdown(question?.started_at, question?.time_limit_seconds);
 
   async function handleRegister() {
-    if (!name.trim() || !email.trim()) {
-      showToast('Enter your name and email.', 'error');
+    if (!name.trim() || !email.trim() || !company.trim()) {
+      showToast('Enter your name, email, and company.', 'error');
       return;
     }
     setSubmitting(true);
@@ -228,10 +228,10 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
           {stage === 'registering' && (
             <>
               <h1 style={titleStyle}>Join event</h1>
-              <p style={subStyle}>Enter your name and email to join.</p>
+              <p style={subStyle}>Enter your name, email, and company to join.</p>
               <input className="ch-field" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
               <input className="ch-field" placeholder="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <input className="ch-field" placeholder="Company (optional)" value={company} onChange={(e) => setCompany(e.target.value)} />
+              <input className="ch-field" placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
               <button className="ch-btn ch-btn-primary full" disabled={submitting} onClick={handleRegister}>
                 {submitting ? 'Joining…' : 'Join'}
               </button>
@@ -253,19 +253,26 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   marginBottom: 10,
+                  gap: 12,
                 }}
               >
                 <div className="ch-kicker" style={{ marginBottom: 0 }}>
                   Question {question.index + 1} of {question.total_questions}
                 </div>
                 {countdown.active && (
-                  <CountdownRing seconds={countdown.remainingSeconds ?? 0} fraction={countdown.fraction} size={44} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {countdown.remainingSeconds ?? 0}s left
+                    </span>
+                    <CountdownRing seconds={countdown.remainingSeconds ?? 0} fraction={countdown.fraction} size={64} />
+                  </div>
                 )}
               </div>
               <h1 style={titleStyle}>{question.title}</h1>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
                 {question.options.map((opt, i) => {
                   const selected = selectedOption === opt.id;
+                  const style = optionStyle(i);
                   return (
                     <button
                       key={opt.id}
@@ -277,20 +284,38 @@ export default function BeaconJoinPage({ params }: { params: Promise<{ code: str
                         gap: 12,
                         padding: '16px 18px',
                         borderRadius: 'var(--radius-md)',
-                        border: selected ? '3px solid var(--navy-700)' : '3px solid transparent',
-                        background: optionStyle(i).color,
-                        color: '#fff',
+                        border: selected ? `3px solid ${style.color}` : '3px solid transparent',
+                        background: selected ? style.color : style.tint,
+                        color: selected ? '#fff' : 'var(--navy-700)',
                         fontWeight: 700,
                         fontSize: 'var(--text-md)',
                         cursor: countdown.expired ? 'not-allowed' : 'pointer',
                         textAlign: 'left',
-                        boxShadow: selected ? '0 4px 14px rgba(0,0,0,.25)' : 'var(--shadow-sm)',
+                        boxShadow: selected ? '0 6px 18px rgba(0,0,0,.22)' : 'var(--shadow-sm)',
+                        transform: selected ? 'scale(1.02)' : 'scale(1)',
                         transition: 'var(--transition-base)',
                         opacity: countdown.expired ? 0.5 : 1,
                       }}
                     >
                       <OptionShape index={i} size={20} />
-                      {opt.label}
+                      <span style={{ flex: 1 }}>{opt.label}</span>
+                      {selected && (
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,.3)',
+                            fontSize: 15,
+                            flexShrink: 0,
+                          }}
+                        >
+                          ✓
+                        </span>
+                      )}
                     </button>
                   );
                 })}

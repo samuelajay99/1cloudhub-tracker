@@ -3,12 +3,17 @@
 // The classic red-triangle / blue-diamond / yellow-circle / green-square
 // convention used by every mainstream quiz tool (Kahoot etc.) — shape as
 // well as color distinguishes options, and it's an instantly-recognizable
-// pattern for anyone who's used one of these before.
+// pattern for anyone who's used one of these before. Colors are softer than
+// the original neon Kahoot palette (participants stare at these for the
+// length of an event, and a wall of saturated color reads as harsh) — `tint`
+// is a light, easy-on-the-eyes background for the unselected state, `color`
+// stays strong enough to read clearly as an icon, bar-chart fill, or a
+// selected option's fill.
 export const OPTION_STYLES = [
-  { color: '#E21B3C', shape: 'triangle' as const },
-  { color: '#1368CE', shape: 'diamond' as const },
-  { color: '#D89E00', shape: 'circle' as const },
-  { color: '#26890C', shape: 'square' as const },
+  { color: '#F0656E', tint: '#FDEBEC', shape: 'triangle' as const },
+  { color: '#4D8FE0', tint: '#EAF1FC', shape: 'diamond' as const },
+  { color: '#E0A339', tint: '#FBF1E1', shape: 'circle' as const },
+  { color: '#4FAE6C', tint: '#EAF6ED', shape: 'square' as const },
 ];
 
 export function optionStyle(index: number) {
