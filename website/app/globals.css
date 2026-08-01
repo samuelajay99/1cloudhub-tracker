@@ -751,7 +751,14 @@ button { font-family: inherit; }
 
 .ch-notes-shell {
   display: flex; align-items: stretch; gap: var(--space-5);
-  min-height: 640px;
+  /* Bound the whole sidebar+editor row to what's actually left of the
+     viewport (header + page padding + tab row, roughly 200px) so it never
+     grows past one screen — the sidebar list and the note body each scroll
+     internally instead (see .ch-notes-list and .ql-editor below), which is
+     what actually keeps the action buttons on-screen regardless of how
+     long a note or how many notes there are. min-height is just a floor
+     for very short viewports. */
+  height: calc(100vh - 200px); min-height: 420px;
 }
 
 /* ---- Sidebar ---- */
@@ -793,6 +800,12 @@ button { font-family: inherit; }
   background: var(--surface-card); border: var(--border-width) solid var(--border-default);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-6);
   gap: var(--space-3);
+  /* Flex items default to a minimum size equal to their content — without
+     this, a long note would still stretch the card past .ch-notes-shell's
+     bounded height instead of letting .ql-editor below absorb the overflow
+     and scroll internally. `overflow: hidden` is what tells the browser
+     this item is allowed to shrink below its content size. */
+  overflow: hidden;
 }
 .ch-note-header {
   /* Always-rendered wrapper around the banner/title+meta-row swap — see the
@@ -813,17 +826,36 @@ button { font-family: inherit; }
 .ch-note-meta-row { font-size: var(--text-xs); color: var(--text-muted); margin-top: -6px; margin-bottom: var(--space-1); }
 
 /* ---- Quill re-skin ---- */
-.ch-quill-host { display: flex; flex-direction: column; flex: 1; min-height: 260px; }
+/* `min-height: 0` (not a floor like 260px) is required here, not optional:
+   flex items default to a minimum size equal to their content, which would
+   otherwise force this host — and everything above it up to
+   .ch-notes-shell — to grow with note length no matter what height the
+   shell asks for. With it at 0, this host actually shrinks to the space
+   .ch-note-editor has left after the title row, and .ql-editor below
+   scrolls internally for whatever doesn't fit. */
+.ch-quill-host { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .ch-quill-host .ql-toolbar.ql-snow {
   border: var(--border-width) solid var(--border-default); border-radius: var(--radius-md) var(--radius-md) 0 0;
-  background: var(--surface-card-tint); padding: 8px 10px;
+  background: var(--surface-card-tint); padding: 8px 10px; flex: none;
 }
 .ch-quill-host .ql-container.ql-snow {
   border: var(--border-width) solid var(--border-default); border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
-  font-family: var(--font-core); font-size: var(--text-md); flex: 1; min-height: 220px;
+  font-family: var(--font-core); font-size: var(--text-md); flex: 1; min-height: 0; overflow: hidden;
 }
-.ch-quill-host .ql-editor { min-height: 220px; line-height: var(--leading-normal); color: var(--text-body); }
+/* Quill's editable area is a plain contenteditable div — unlike a
+   <textarea>, it has no built-in cap and just keeps growing to fit
+   whatever's typed, pushing the toolbar/action buttons further down the
+   page the longer a note gets. `height: 100%` (Quill's own default,
+   restated explicitly here) makes it fill exactly what .ql-container above
+   has to give — which is now a real, bounded number thanks to the
+   min-height: 0 chain — and scroll internally for the rest, so the action
+   buttons below stay in a fixed spot regardless of note length or screen
+   size. min-height is just a floor so a short/empty note isn't a sliver. */
+.ch-quill-host .ql-editor {
+  min-height: 160px; height: 100%; overflow-y: auto;
+  line-height: var(--leading-normal); color: var(--text-body);
+}
 .ch-quill-host .ql-editor.ql-blank::before { color: var(--text-muted); font-style: normal; }
 .ch-quill-host .ql-snow .ql-stroke { stroke: var(--text-secondary); }
 .ch-quill-host .ql-snow .ql-fill { fill: var(--text-secondary); }
