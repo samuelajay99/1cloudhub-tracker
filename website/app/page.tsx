@@ -5,11 +5,9 @@ import { supabase } from '../lib/supabase';
 import { useToast } from '../components/useToast';
 import Toast from '../components/Toast';
 import { HeaderBrand, OrbitBrand, FooterBrand, IconTile, CompassMark, BeaconMark, HorizonMark } from '../components/Brand';
-import { ShieldCheck, Sparkles, ArrowRight, Apple, MonitorDown } from 'lucide-react';
+import { ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 
 type Stage = 'loading' | 'signedOut' | 'pending' | 'rejected' | 'approved';
-
-const RELEASES_BASE = 'https://github.com/samuelajay99/1cloudhub-tracker/releases/latest/download';
 
 export default function HomePage() {
   const { toast, showToast } = useToast();
@@ -351,31 +349,8 @@ export default function HomePage() {
                 Notes, AI task extraction, a kanban board, and an email-drafting assistant — for
                 staying on top of your day.
               </p>
-              <div className="ch-download-list">
-                <a className="ch-download-row" href={`${RELEASES_BASE}/Compass-mac-arm64.dmg`}>
-                  <div>
-                    <span className="name">Download for Mac (Apple Silicon)</span>
-                    <span className="platform-sub">.dmg — unsigned, right-click → Open on first launch</span>
-                  </div>
-                  <Apple size={18} strokeWidth={1.75} />
-                </a>
-                <a className="ch-download-row" href={`${RELEASES_BASE}/Compass-mac-x64.dmg`}>
-                  <div>
-                    <span className="name">Download for Mac (Intel)</span>
-                    <span className="platform-sub">.dmg — unsigned, right-click → Open on first launch</span>
-                  </div>
-                  <Apple size={18} strokeWidth={1.75} />
-                </a>
-                <a className="ch-download-row" href={`${RELEASES_BASE}/Compass-win-x64.exe`}>
-                  <div>
-                    <span className="name">Download for Windows</span>
-                    <span className="platform-sub">.exe — unsigned, click &quot;More info → Run anyway&quot;</span>
-                  </div>
-                  <MonitorDown size={18} strokeWidth={1.75} />
-                </a>
-              </div>
-              <a href="/install" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--blue-600)' }}>
-                Need help installing? Step-by-step guide →
+              <a href="/compass" className="ch-btn ch-btn-primary full" style={{ marginTop: 14 }}>
+                Open Compass
               </a>
             </div>
 

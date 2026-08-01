@@ -57,6 +57,18 @@ export function HorizonHeaderBrand() {
   );
 }
 
+export function CompassHeaderBrand() {
+  return (
+    <a href="/compass" className="ch-header-brand" style={{ textDecoration: 'none' }}>
+      <CompassMark size={30} />
+      <span className="ch-orbit-word inverse">
+        Compass
+        <small>by Orbit</small>
+      </span>
+    </a>
+  );
+}
+
 export function OrbitBrand({ center = false, theme = 'dark' }: { center?: boolean; theme?: 'dark' | 'light' }) {
   return (
     <div
@@ -90,6 +102,18 @@ export function HorizonBrand({ center = false, theme = 'dark' }: { center?: bool
       <HorizonMark size={30} />
       <span className={`ch-orbit-word ${theme === 'light' ? 'inverse' : ''}`}>
         Horizon
+        <small>by Orbit</small>
+      </span>
+    </div>
+  );
+}
+
+export function CompassBrand({ center = false, theme = 'dark' }: { center?: boolean; theme?: 'dark' | 'light' }) {
+  return (
+    <div className="ch-header-brand" style={{ marginBottom: 20, justifyContent: center ? 'center' : 'flex-start' }}>
+      <CompassMark size={30} />
+      <span className={`ch-orbit-word ${theme === 'light' ? 'inverse' : ''}`}>
+        Compass
         <small>by Orbit</small>
       </span>
     </div>
