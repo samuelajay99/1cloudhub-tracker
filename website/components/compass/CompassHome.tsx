@@ -18,7 +18,7 @@
 // "Sign out" button, no modal), for consistency with the rest of Orbit.
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, NotebookPen, KanbanSquare, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCompassData } from './useCompassData';
 import { CompassHeaderBrand } from '../Brand';
@@ -27,6 +27,12 @@ import BoardTab, { BoardTabHandle } from './board/BoardTab';
 import EmailTab from './email/EmailTab';
 
 type CompassTab = 'notes' | 'board' | 'email';
+
+const TABS: { id: CompassTab; label: string; icon: typeof NotebookPen }[] = [
+  { id: 'notes', label: 'Notes', icon: NotebookPen },
+  { id: 'board', label: 'Board', icon: KanbanSquare },
+  { id: 'email', label: 'Email', icon: Mail },
+];
 
 export default function CompassHome({ userId }: { userId: string }) {
   const router = useRouter();
@@ -96,18 +102,31 @@ export default function CompassHome({ userId }: { userId: string }) {
         </div>
       </header>
 
-      <div className="ch-shell-wide" style={{ padding: 'var(--space-8) var(--space-6)' }}>
-        <div className="ch-board-view-toggle" style={{ marginBottom: 'var(--space-6)' }}>
-          <button type="button" className={'ch-board-view-btn' + (tab === 'notes' ? ' active' : '')} onClick={() => setTab('notes')}>
-            Notes
-          </button>
-          <button type="button" className={'ch-board-view-btn' + (tab === 'board' ? ' active' : '')} onClick={() => setTab('board')}>
-            Board
-          </button>
-          <button type="button" className={'ch-board-view-btn' + (tab === 'email' ? ' active' : '')} onClick={() => setTab('email')}>
-            Email
-          </button>
-        </div>
+      <div className="ch-compass-shell">
+        {/*
+          Primary section nav for the whole app — distinct on purpose from
+          BoardTab's own List/Kanban toggle (a small pill control for a
+          secondary, in-tab choice). This is top-level navigation, so it
+          gets the weight of one: underlined tabs with icons, full-width
+          separator beneath, following the same pattern as Notion/Linear's
+          section tabs rather than reusing the pill-button styling that was
+          here before.
+        */}
+        <nav className="ch-compass-tabs" role="tablist" aria-label="Compass sections">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              className={'ch-compass-tab' + (tab === id ? ' active' : '')}
+              onClick={() => setTab(id)}
+            >
+              <Icon size={17} strokeWidth={2} />
+              {label}
+            </button>
+          ))}
+        </nav>
 
         {/*
           All three tabs stay mounted (hidden via CSS, not unmounted) once

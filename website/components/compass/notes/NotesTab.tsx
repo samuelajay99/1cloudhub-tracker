@@ -25,8 +25,25 @@ export interface NotesTabHandle {
   createNote: () => void;
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'ch_notes_sidebar_collapsed';
+
 const NotesTab = forwardRef<NotesTabHandle, { data: UseCompassData }>(function NotesTab({ data }, ref) {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  // Pure UI preference, not app data — persisted the same way BoardTab's
+  // view-mode/expanded-groups are (see BoardTab.tsx), so it isn't affected
+  // by the "Supabase is the sole source of truth for DATA" decision.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  });
+
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      return next;
+    });
+  }
 
   // If the selected note disappears (deleted from under us, or on first
   // load before anything is selected), fall back to nothing-selected
@@ -52,7 +69,14 @@ const NotesTab = forwardRef<NotesTabHandle, { data: UseCompassData }>(function N
 
   return (
     <div className="ch-notes-shell">
-      <NoteSidebar notes={data.notes} selectedNoteId={selectedNoteId} onSelect={setSelectedNoteId} onCreate={handleCreate} />
+      <NoteSidebar
+        notes={data.notes}
+        selectedNoteId={selectedNoteId}
+        onSelect={setSelectedNoteId}
+        onCreate={handleCreate}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
+      />
       <NoteEditor note={selectedNote} data={data} onDeleted={() => setSelectedNoteId(null)} />
     </div>
   );
