@@ -243,17 +243,17 @@ export default function NoteEditor({
       */}
       <div className="ch-note-header">
         {note ? (
-          <>
+          <div className="ch-note-header-row">
             <input
               className="ch-note-title-input"
               value={localTitle}
               placeholder="Note title..."
               onChange={(e) => handleTitleChange(e.target.value)}
             />
-            <div className="ch-note-meta-row">
-              Last updated {note.updatedAt ? new Date(note.updatedAt).toLocaleString() : 'just now'}
-            </div>
-          </>
+            <span className="ch-note-meta-inline">
+              Updated {note.updatedAt ? new Date(note.updatedAt).toLocaleString() : 'just now'}
+            </span>
+          </div>
         ) : (
           <div className="ch-note-editor-empty-banner">Select a note or create one to get started.</div>
         )}

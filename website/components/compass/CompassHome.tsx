@@ -89,7 +89,7 @@ export default function CompassHome({ userId }: { userId: string }) {
 
   return (
     <div className="ch-page">
-      <header className="ch-header">
+      <header className="ch-header compact">
         <CompassHeaderBrand />
         <div className="ch-header-right">
           <a href="/" className="ch-btn ch-btn-ghost" style={{ color: '#fff' }}>
