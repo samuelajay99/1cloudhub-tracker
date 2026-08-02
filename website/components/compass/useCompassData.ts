@@ -59,6 +59,8 @@ interface TaskRow {
   manual: boolean | null;
   deleted: boolean | null;
   created_at: string;
+  notified_dismissed_bucket: string | null;
+  notified_dismissed_at: string | null;
 }
 
 interface EmailRow {
@@ -117,6 +119,8 @@ function taskToRow(t: Task, userId: string): TaskRow {
     manual: !!t.manual,
     deleted: !!t.deleted,
     created_at: t.createdAt || new Date().toISOString(),
+    notified_dismissed_bucket: t.notifiedDismissedBucket || null,
+    notified_dismissed_at: t.notifiedDismissedAt || null,
   };
 }
 
@@ -136,6 +140,8 @@ function rowToTask(r: TaskRow): Task {
     manual: !!r.manual,
     deleted: !!r.deleted,
     createdAt: r.created_at,
+    notifiedDismissedBucket: (r.notified_dismissed_bucket as Task['notifiedDismissedBucket']) || null,
+    notifiedDismissedAt: r.notified_dismissed_at || null,
   };
 }
 
@@ -428,6 +434,8 @@ export function useCompassData(userId: string): UseCompassData {
         manual: input.manual ?? false,
         deleted: input.deleted ?? false,
         createdAt: new Date().toISOString(),
+        notifiedDismissedBucket: input.notifiedDismissedBucket ?? null,
+        notifiedDismissedAt: input.notifiedDismissedAt ?? null,
       };
       setTasks((prev) => {
         const next = [...prev, task];
@@ -509,6 +517,8 @@ export function useCompassData(userId: string): UseCompassData {
         manual: false,
         deleted: false,
         createdAt: now,
+        notifiedDismissedBucket: null,
+        notifiedDismissedAt: null,
       }));
 
       let removedIds: string[] = [];

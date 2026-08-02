@@ -25,6 +25,8 @@ import { CompassHeaderBrand } from '../Brand';
 import NotesTab, { NotesTabHandle } from './notes/NotesTab';
 import BoardTab, { BoardTabHandle } from './board/BoardTab';
 import EmailTab from './email/EmailTab';
+import PetMascot from './notifications/PetMascot';
+import { useTaskNotifications } from './notifications/useTaskNotifications';
 
 type CompassTab = 'notes' | 'board' | 'email';
 
@@ -37,6 +39,7 @@ const TABS: { id: CompassTab; label: string; icon: typeof NotebookPen }[] = [
 export default function CompassHome({ userId }: { userId: string }) {
   const router = useRouter();
   const data = useCompassData(userId);
+  const notifications = useTaskNotifications(data);
   const [tab, setTab] = useState<CompassTab>('notes');
   const [email, setEmail] = useState('');
 
@@ -126,6 +129,12 @@ export default function CompassHome({ userId }: { userId: string }) {
               {label}
             </button>
           ))}
+          {/* Fills the empty space in the tab row (everything to the right
+              of Email) — the pet lives and walks around inside this strip
+              rather than floating over note/task content. See
+              PetMascot.tsx for why this box, not the viewport, is now its
+              bounding container. */}
+          <PetMascot notifications={notifications} />
         </nav>
 
         {/*
